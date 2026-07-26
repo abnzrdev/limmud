@@ -1,0 +1,6 @@
+The synthetic Kaikki-shaped records in this directory are provided under
+CC BY-SA 4.0 for test and documentation use. They were authored for
+LearningAppOffline and contain no copied dictionary definitions.
+
+The synthetic Open English WordNet-shaped fixture is provided under CC BY 4.0.
+It is not extracted from the production Open English WordNet dataset.

@@ -1,0 +1,43 @@
+# Dependencies and builds
+node_modules/
+dist/
+dist-ssr/
+src-tauri/target/
+
+# Logs and diagnostics
+*.log
+logs/
+diagnostics/
+.debug-runs/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Editors and operating systems
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local tooling, caches, and backups
+.codegraph/
+.backups/
+__pycache__/
+*.py[cod]
+*.bak
+
+# Offline dictionary sources and generated databases
+*.jsonl
+*.jsonl.gz
+*.dict.sqlite
+*.dict.sqlite.tmp
+dictionary.sqlite
+!scripts/dictionary/fixtures/*.jsonl

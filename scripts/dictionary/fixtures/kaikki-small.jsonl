@@ -1,0 +1,5 @@
+{"word":"run","lang":"English","lang_code":"en","pos":"verb","etymology_text":"From Middle English runnen.","senses":[{"glosses":["To move swiftly on foot."],"raw_glosses":["To move swiftly on foot."],"tags":["intransitive"],"senseid":["en-run-verb-1"],"examples":[{"text":"I run every morning."}],"synonyms":[{"word":"sprint"}],"antonyms":[{"word":"walk"}]}],"sounds":[{"ipa":"/ɹʌn/","tags":["US"],"audio":"en-us-run.ogg","mp3_url":"https://example.invalid/run.mp3"}],"forms":[{"form":"running","tags":["present","participle"]},{"form":"ran","tags":["past"]}]}
+{"word":"run","lang":"English","lang_code":"en","pos":"noun","senses":[{"glosses":["An act or instance of running."],"examples":[{"text":"She went for a run."}]}]}
+{"word":"child","lang":"English","lang_code":"en","pos":"noun","senses":[{"glosses":["A young person."],"antonyms":[{"word":"adult"}]}],"forms":[{"form":"children","tags":["plural"]}]}
+{"word":"café","lang":"English","lang_code":"en","pos":"noun","senses":[{"glosses":["A small restaurant selling refreshments."]}]}
+{"word":"courir","lang":"French","lang_code":"fr","pos":"verb","senses":[{"glosses":["To run."]}]}
