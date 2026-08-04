@@ -1,0 +1,15 @@
+{
+  "brand": "Limmud",
+  "source_zip": "/home/abnzr/Downloads/limmud.zip",
+  "source_zip_sha256": "b86b6632d8c194faa82b09e79ce292be218cdc71a0f9a373607aeb99ba223f93",
+  "app_icon_source": "app-icon-source.png",
+  "files": [
+    "app-icon-source.png",
+    "logo-blue-accent.png",
+    "logo-book-focus.png",
+    "logo-deep-navy.png",
+    "logo-electric-blue.png",
+    "logo-pinpoint-focus.png",
+    "splash-screen.png"
+  ]
+}
