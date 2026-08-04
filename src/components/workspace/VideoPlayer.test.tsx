@@ -143,7 +143,8 @@ it("wires the local video through localhost and keeps matching vtt track in Taur
     ),
   );
   expect(courseMediaUrl).toHaveBeenCalledWith("/tmp/course", "/tmp/week1/lesson.mp4");
-  expect(container.querySelector("video")).toHaveAttribute("controls");
+  expect(container.querySelector("video")).not.toHaveAttribute("controls");
+  expect(screen.getByTestId("vidstack-player")).toBeInTheDocument();
   expect(container.querySelector("track")).toHaveAttribute("src", "asset:///tmp/week1/lesson.vtt");
   expect(screen.queryByText(/Video src:/)).not.toBeInTheDocument();
 });

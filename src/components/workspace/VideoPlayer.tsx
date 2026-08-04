@@ -10,6 +10,7 @@ import {
 import { convertSrtToVtt } from "../../lib/subtitleMatch";
 import type { CourseEntry } from "../../types/course";
 
+import { VidstackVideo } from "./VidstackVideo";
 interface VideoPlayerProps {
   courseRoot: string | null;
   selectedEntry: CourseEntry | null;
@@ -219,12 +220,11 @@ export function VideoPlayer({
 
   return (
     <div className="workspace-preview">
-      <video
+      <VidstackVideo
         key={selectedEntry.absolutePath}
-        ref={videoRef}
+        mediaRef={videoRef}
         className="workspace-video"
         autoPlay={autoPlay}
-        controls
         preload="metadata"
         src={videoUrl ?? undefined}
         playsInline
@@ -304,20 +304,10 @@ export function VideoPlayer({
           onProgressChange(completedSeconds);
           onEnded(completedSeconds);
         }}
-      >
-        {subtitleUrl ? (
-          <track
-            kind="subtitles"
-            src={subtitleUrl}
-            srcLang="en"
-            label="English"
-            default
-            onLoad={(event) => {
-              event.currentTarget.track.mode = "showing";
-            }}
-          />
-        ) : null}
-      </video>
+        title={selectedEntry.name}
+        resumeTime={resumeTime}
+        subtitleUrl={subtitleUrl}
+      />
       <button className="workspace-open-button" type="button" onClick={openInSystemPlayer}>
         <ExternalLink aria-hidden="true" />
         Open in system player

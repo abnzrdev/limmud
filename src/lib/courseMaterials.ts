@@ -16,7 +16,8 @@ export const materialGroups: MaterialGroup[] = ["Notes", "Subtitles", "Images", 
 
 export function collectCourseMaterials(entries: CourseEntry[]): CourseMaterial[] {
   return entries.flatMap((entry): CourseMaterial[] => {
-    if (entry.relativePath.replace(/\\/g, "/").split("/").includes(".learningappoffline")) return [];
+    const pathParts = entry.relativePath.replace(/\\/g, "/").split("/");
+    if (pathParts.includes(".limmud") || pathParts.includes(".learningappoffline")) return [];
     if (entry.kind === "directory") return collectCourseMaterials(entry.children ?? []);
     if (entry.kind === "video") return [];
     const normalized = entry.relativePath.replace(/\\/g, "/");
