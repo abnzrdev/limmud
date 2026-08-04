@@ -61,8 +61,8 @@ Follow the official [Tauri prerequisites guide](https://v2.tauri.app/start/prere
 ### Install and run
 
 ```bash
-git clone https://github.com/abnzrdev/LearningAppOffline.git
-cd Limmud
+git clone https://github.com/abnzrdev/limmud.git
+cd limmud
 npm ci
 npm run tauri -- dev
 ```
