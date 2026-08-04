@@ -1,7 +1,33 @@
 use std::path::{Path, PathBuf};
 
+const COURSE_STATE_DIR_NAME: &str = ".learningappoffline";
+const LEGACY_COURSE_STATE_DIR_NAME: &str = ".limmud";
+const APP_CONFIG_DIR_NAME: &str = "Limmud";
+const LEGACY_APP_CONFIG_DIR_NAME: &str = "Limmud";
+
+fn preferred_dir(current: PathBuf, legacy: PathBuf) -> PathBuf {
+    if current.exists() || !legacy.exists() {
+        return current;
+    }
+
+    match std::fs::rename(&legacy, &current) {
+        Ok(()) => current,
+        Err(error) => {
+            eprintln!(
+                "Limmud could not migrate {} to {}: {error}",
+                legacy.display(),
+                current.display()
+            );
+            legacy
+        }
+    }
+}
+
 pub fn course_state_dir(course_root: &Path) -> PathBuf {
-    course_root.join(".learningappoffline")
+    preferred_dir(
+        course_root.join(COURSE_STATE_DIR_NAME),
+        course_root.join(LEGACY_COURSE_STATE_DIR_NAME),
+    )
 }
 
 pub fn course_state_file(course_root: &Path) -> PathBuf {
@@ -31,10 +57,13 @@ pub fn course_resources_file(course_root: &Path) -> PathBuf {
 }
 
 pub fn app_config_file() -> PathBuf {
-    std::env::var_os("HOME")
+    let config_root = std::env::var_os("HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".config")
-        .join("LearningAppOffline")
-        .join("config.json")
+        .join(".config");
+    preferred_dir(
+        config_root.join(APP_CONFIG_DIR_NAME),
+        config_root.join(LEGACY_APP_CONFIG_DIR_NAME),
+    )
+    .join("config.json")
 }

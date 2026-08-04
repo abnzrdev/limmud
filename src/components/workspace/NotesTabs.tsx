@@ -262,7 +262,7 @@ function errorHeading(error: SaveNoteError): string {
 
 function errorExplanation(error: SaveNoteError): string {
   return error.kind === "permissionDenied" || error.kind === "readOnlyFilesystem"
-    ? "The lesson folder is read-only, so LearningAppOffline cannot create the notes file."
+    ? "The lesson folder is read-only, so Limmud cannot create the notes file."
     : error.message;
 }
 

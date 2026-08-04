@@ -84,7 +84,10 @@ fn resolve_editable_text_file(course_root: &str, relative_path: &str) -> Result<
     let relative = Path::new(relative_path);
     if relative
         .components()
-        .any(|part| part.as_os_str() == ".learningappoffline")
+        .any(|part| {
+            let name = part.as_os_str();
+            name == ".limmud" || name == ".learningappoffline"
+        })
     {
         return Err("internal course files are not editable".to_string());
     }
@@ -216,7 +219,7 @@ pub fn write_note_for_lesson(
         };
         save_error(
             kind,
-            "LearningAppOffline could not save the note beside this lesson.",
+            "Limmud could not save the note beside this lesson.",
             &target,
             parent,
             Some(error.to_string()),
@@ -335,7 +338,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("system time")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("learning-app-offline-notes-{name}-{unique}"));
+        let path = std::env::temp_dir().join(format!("limmud-notes-{name}-{unique}"));
         fs::create_dir_all(&path).expect("create temp directory");
         path
     }

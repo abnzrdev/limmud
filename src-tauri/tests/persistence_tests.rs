@@ -18,7 +18,7 @@ fn make_temp_dir() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .expect("time went backwards")
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("learning-app-offline-persistence-{unique}"));
+    let root = std::env::temp_dir().join(format!("limmud-persistence-{unique}"));
     fs::create_dir_all(&root).expect("create temp dir");
     root
 }

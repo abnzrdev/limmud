@@ -126,7 +126,7 @@ mod tests {
             .expect("system time")
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "learning-app-offline-config-{}-{suffix}.json",
+            "limmud-config-{}-{suffix}.json",
             std::process::id()
         ));
         let mut expected = BTreeMap::new();
