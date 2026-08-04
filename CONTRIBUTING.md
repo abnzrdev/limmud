@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for considering a contribution to LearningAppOffline.
+Thanks for considering a contribution to Limmud.
 
 ## Before opening a change
 

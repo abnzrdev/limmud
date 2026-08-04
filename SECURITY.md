@@ -2,7 +2,7 @@
 
 ## Supported version
 
-LearningAppOffline is in early development. Security fixes are applied to the latest code on the `main` branch.
+Limmud is in early development. Security fixes are applied to the latest code on the `main` branch.
 
 ## Reporting a vulnerability
 

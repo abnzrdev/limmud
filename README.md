@@ -1,8 +1,8 @@
-# LearningAppOffline
+# Limmud
 
 **A focused, local-first desktop workspace for studying offline course material.**
 
-Online course platforms are useful for distribution, but their feeds, recommendations, notifications, and browser distractions can make focused study harder. LearningAppOffline brings downloaded course material into one desktop workspace so learners can watch lessons, take notes, track progress, and use study tools without sending their course data to a cloud service.
+Online course platforms are useful for distribution, but their feeds, recommendations, notifications, and browser distractions can make focused study harder. Limmud brings downloaded course material into one desktop workspace so learners can watch lessons, take notes, track progress, and use study tools without sending their course data to a cloud service.
 
 > Project status: active, early-stage development (`0.1.0`). The core workflow works, but packaged releases and platform-specific installation guides are not available yet.
 
@@ -62,7 +62,7 @@ Follow the official [Tauri prerequisites guide](https://v2.tauri.app/start/prere
 
 ```bash
 git clone https://github.com/abnzrdev/LearningAppOffline.git
-cd LearningAppOffline
+cd Limmud
 npm ci
 npm run tauri -- dev
 ```
@@ -91,7 +91,7 @@ The offline dictionary pack builder has its own documentation in [`docs/dictiona
 
 ## Data and privacy
 
-LearningAppOffline is local-first:
+Limmud is local-first:
 
 - It has no required account, analytics service, telemetry endpoint, or cloud database.
 - Course state is stored inside the selected course folder.
