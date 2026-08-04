@@ -127,7 +127,7 @@ export function DictionaryDrawer({
           <div className="dictionary-empty">
             <h3>Offline Dictionary</h3>
             <p>No dictionary pack is installed.</p>
-            <p>Build or choose a compatible LearningAppOffline dictionary pack to enable offline definitions.</p>
+            <p>Build or choose a compatible Limmud dictionary pack to enable offline definitions.</p>
             <button type="button" className="button-primary" onClick={() => void install()}>Import Dictionary Pack</button>
             <details><summary>View Setup Instructions</summary><p>Build a local pack with <code>python3 scripts/dictionary/build_dictionary_pack.py --input … --output english.dict.sqlite</code>, then import it here.</p></details>
           </div>

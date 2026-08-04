@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a compact LearningAppOffline dictionary pack from local source files."""
+"""Build a compact Limmud dictionary pack from local source files."""
 
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 
 ## Scope
 
-LearningAppOffline gains a completely offline dictionary made of two independent parts:
+Limmud gains a completely offline dictionary made of two independent parts:
 
 1. `scripts/dictionary/build_dictionary_pack.py` converts a local Kaikki/Wiktextract JSONL dump and, optionally, the official Open English WordNet 2025 JSON export into one versioned SQLite pack.
 2. Rust installs that prepared pack into Tauri application data and serves bounded, typed dictionary and course-vocabulary commands to React.

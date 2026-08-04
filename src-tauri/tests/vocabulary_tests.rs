@@ -2,7 +2,7 @@ use std::{
     fs,
     time::{SystemTime, UNIX_EPOCH},
 };
-use tauri_applearning_app_offline_lib::commands::vocabulary::{
+use limmud_lib::commands::vocabulary::{
     vocabulary_list, vocabulary_remove, vocabulary_save, vocabulary_update, SavedVocabularyItem,
 };
 

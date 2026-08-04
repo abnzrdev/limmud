@@ -29,7 +29,7 @@ fn vocabulary_file(course_root: &str) -> Result<PathBuf, String> {
     if !root.is_dir() {
         return Err("Course root is not a directory".into());
     }
-    Ok(root.join(".learningappoffline").join("vocabulary.json"))
+    Ok(crate::fs_paths::course_state_dir(&root).join("vocabulary.json"))
 }
 
 fn validate(item: &SavedVocabularyItem) -> Result<(), String> {

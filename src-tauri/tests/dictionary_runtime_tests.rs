@@ -3,7 +3,7 @@ use std::{
     process::Command,
     time::{SystemTime, UNIX_EPOCH},
 };
-use tauri_applearning_app_offline_lib::dictionary::{get_entry, search, validate_pack};
+use limmud_lib::dictionary::{get_entry, search, validate_pack};
 
 fn fixture_pack() -> PathBuf {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");

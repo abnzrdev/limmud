@@ -1,6 +1,6 @@
 # Offline dictionary data
 
-LearningAppOffline does not author or download dictionary data. A user obtains source files separately, runs the local builder, and imports the resulting pack. The application then performs all lookups offline.
+Limmud does not author or download dictionary data. A user obtains source files separately, runs the local builder, and imports the resulting pack. The application then performs all lookups offline.
 
 ## Supported sources
 
@@ -53,4 +53,4 @@ dictionary/
 
 Saved words remain course-specific at `<course>/.learningappoffline/vocabulary.json`. The dictionary database is never copied into courses.
 
-Dictionary-data licenses apply to the corresponding data and derived pack records. They do not change the license of LearningAppOffline’s application source code.
+Dictionary-data licenses apply to the corresponding data and derived pack records. They do not change the license of Limmud’s application source code.
