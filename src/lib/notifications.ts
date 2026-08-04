@@ -13,7 +13,7 @@ export async function notifyFocusSessionComplete(): Promise<void> {
     }
     if (permissionGranted) {
       sendNotification({
-        title: "LearningAppOffline",
+        title: "Limmud",
         body: "Focus session complete",
       });
     }
@@ -29,6 +29,6 @@ export async function notifyFocusSessionComplete(): Promise<void> {
     permission = await Notification.requestPermission();
   }
   if (permission === "granted") {
-    new Notification("LearningAppOffline", { body: "Focus session complete" });
+    new Notification("Limmud", { body: "Focus session complete" });
   }
 }

@@ -65,7 +65,7 @@ afterEach(cleanup);
 it("toggles zen mode without hiding the workspace", () => {
   const { container } = render(<AppShell model={modelStub()} />);
 
-  expect(screen.getByRole("heading", { name: "LearningAppOffline" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Limmud" })).toBeInTheDocument();
   expect(screen.getByPlaceholderText("Search lessons...")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Course Materials" })).toBeInTheDocument();
   expect(screen.getByText("Today")).toBeInTheDocument();
@@ -73,7 +73,7 @@ it("toggles zen mode without hiding the workspace", () => {
   fireEvent.click(screen.getByRole("button", { name: "Zen Mode" }));
 
   expect(container.firstElementChild).toHaveClass("app-shell--zen");
-  expect(screen.queryByRole("heading", { name: "LearningAppOffline" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Limmud" })).not.toBeInTheDocument();
   expect(screen.queryByPlaceholderText("Search lessons...")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Resources" })).not.toBeInTheDocument();
   expect(screen.getByText("25:00")).toBeInTheDocument();
@@ -84,7 +84,7 @@ it("toggles zen mode without hiding the workspace", () => {
   fireEvent.click(screen.getByRole("button", { name: "Exit Zen" }));
 
   expect(container.firstElementChild).not.toHaveClass("app-shell--zen");
-  expect(screen.getByRole("heading", { name: "LearningAppOffline" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Limmud" })).toBeInTheDocument();
   expect(screen.getByPlaceholderText("Search lessons...")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Course Materials" })).toBeInTheDocument();
 });
@@ -155,7 +155,7 @@ it("exits zen mode with Escape", () => {
 
   expect(container.firstElementChild).not.toHaveClass("app-shell--zen");
   expect(screen.queryByRole("button", { name: "Exit Zen" })).not.toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "LearningAppOffline" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Limmud" })).toBeInTheDocument();
 });
 
 it("collapses the side panels into rails", () => {

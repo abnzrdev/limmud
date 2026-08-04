@@ -1,3 +1,4 @@
+import limmudAppIcon from "../../assets/brand/limmud/app-icon-source.png";
 import {
   BarChart3,
   Bookmark,
@@ -295,9 +296,15 @@ export function AppShell({ model }: AppShellProps) {
         ) : (
           <>
             <div className="app-brand">
-              <span className="app-mark" aria-hidden="true">LA</span>
+              <span className="app-mark" aria-hidden="true">
+                <img
+                  className="app-mark-image"
+                  src={limmudAppIcon}
+                  alt=""
+                />
+              </span>
               <div>
-                <h1 className="app-title">LearningAppOffline</h1>
+                <h1 className="app-title">Limmud</h1>
                 <span className="app-subtitle">Local study desk</span>
               </div>
             </div>
@@ -411,7 +418,8 @@ export function AppShell({ model }: AppShellProps) {
           <GripVertical aria-hidden="true" />
         </Separator>
 
-        <Panel id="center-workspace" className="center-workspace-panel" minSize="420px">
+        <Panel id="center-workspace" className="center-workspace-panel"
+          minSize="420px">
           <div className="center-workspace" hidden={isTerminalMaximized}>
             <LessonWorkspace
               currentCourseRoot={model.currentCourseRoot}

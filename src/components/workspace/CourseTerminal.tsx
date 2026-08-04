@@ -497,16 +497,69 @@ function TerminalPane({
 
     const readTheme = () => {
       const style = getComputedStyle(document.documentElement);
+      const color = (name: string, fallback: string) =>
+        style.getPropertyValue(name).trim() || fallback;
 
       return {
-        background:
-          style.getPropertyValue("--terminal-bg").trim() || "#1A1E0A",
-        cursor:
-          style.getPropertyValue("--accent").trim() || "#E6FF01",
-        foreground:
-          style.getPropertyValue("--text").trim() || "#F1F4E3",
-        selectionBackground:
-          style.getPropertyValue("--selection").trim() || "#656B3566",
+        background: color("--terminal-bg", "#020304"),
+        foreground: color("--terminal-foreground", "#CC9E61"),
+        cursor: color("--terminal-cursor", "#CC9E61"),
+        cursorAccent: color(
+          "--terminal-cursor-accent",
+          "#020304",
+        ),
+        selectionBackground: color(
+          "--terminal-selection",
+          "#493925",
+        ),
+
+        black: color("--terminal-black", "#020304"),
+        red: color(
+          "--terminal-red",
+          "#7E4B2F",
+        ),
+        green: color("--terminal-green", "#938172"),
+        yellow: color("--terminal-yellow", "#CC9E61"),
+        blue: color("--terminal-blue", "#626266"),
+        magenta: color(
+          "--terminal-magenta",
+          "#704B3E",
+        ),
+        cyan: color(
+          "--terminal-cyan",
+          "#AD8E6A",
+        ),
+        white: color("--terminal-white", "#CC9E61"),
+
+        brightBlack: color("--terminal-bright-black", "#626266"),
+        brightRed: color(
+          "--terminal-bright-red",
+          "#9A6941",
+        ),
+        brightGreen: color(
+          "--terminal-bright-green",
+          "#AB8D6B",
+        ),
+        brightYellow: color(
+          "--terminal-bright-yellow",
+          "#D4AD79",
+        ),
+        brightBlue: color(
+          "--terminal-bright-blue",
+          "#847564",
+        ),
+        brightMagenta: color(
+          "--terminal-bright-magenta",
+          "#8E5C39",
+        ),
+        brightCyan: color(
+          "--terminal-bright-cyan",
+          "#BA9566",
+        ),
+        brightWhite: color(
+          "--terminal-bright-white",
+          "#D7B384",
+        ),
       };
     };
 

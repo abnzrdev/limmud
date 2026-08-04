@@ -8,11 +8,28 @@ pub mod persistence;
 pub mod scanner;
 pub mod terminal;
 
+#[cfg(debug_assertions)]
+use tauri::Manager;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let terminal_state = terminal::TerminalState::default();
     let cleanup_state = terminal_state.clone();
     tauri::Builder::default()
+        // Limmud debug DevTools
+        .setup(|app| {
+            #[cfg(debug_assertions)]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    window.open_devtools();
+                }
+            }
+
+            #[cfg(not(debug_assertions))]
+            let _ = app;
+
+            Ok(())
+        })
         .manage(terminal_state)
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())

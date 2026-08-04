@@ -162,7 +162,7 @@ export async function chooseResourcePaths(): Promise<string[]> {
 }
 
 export async function chooseDictionaryPack(): Promise<string | null> {
-  const selected = await open({ directory: false, multiple: false, title: "Import Dictionary Pack", filters: [{ name: "LearningAppOffline dictionary", extensions: ["sqlite"] }] });
+  const selected = await open({ directory: false, multiple: false, title: "Import Dictionary Pack", filters: [{ name: "Limmud dictionary", extensions: ["sqlite"] }] });
   return typeof selected === "string" ? selected : null;
 }
 export const dictionaryStatus = () => invoke<DictionaryStatus>("dictionary_status");

@@ -11,7 +11,7 @@ fn make_temp_course_dir() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .expect("time went backwards")
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("learning-app-offline-{unique}"));
+    let root = std::env::temp_dir().join(format!("limmud-{unique}"));
     fs::create_dir_all(&root).expect("create temp dir");
     root
 }
@@ -183,7 +183,7 @@ fn scans_entries_in_natural_order_without_dropping_folders() {
 }
 
 #[test]
-fn skips_internal_learningappoffline_state_from_scan_results() {
+fn skips_internal_limmud_state_from_scan_results() {
     let root = make_temp_course_dir();
     let course_dir = root.join("Course");
     let internal_dir = course_dir.join(".learningappoffline");
