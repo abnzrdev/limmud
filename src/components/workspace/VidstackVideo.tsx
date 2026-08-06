@@ -1,8 +1,13 @@
 import {
+  canUsePictureInPicture,
   isVideoProvider,
   MediaPlayer,
   MediaProvider,
+  PIPButton,
+  PictureInPictureExitIcon,
+  PictureInPictureIcon,
   Track,
+  type MediaPlayerInstance,
   type MediaProviderAdapter,
 } from "@vidstack/react";
 import {
@@ -13,6 +18,8 @@ import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import {
   useEffect,
+  useRef,
+  useState,
   type MutableRefObject,
   type SyntheticEvent,
 } from "react";
@@ -23,13 +30,14 @@ type VideoHandler = (
 
 interface VidstackVideoProps {
   mediaRef: MutableRefObject<HTMLVideoElement | null>;
+  sourceId?: string;
   title: string;
   className?: string;
   src?: string;
   autoPlay?: boolean;
   preload?: "none" | "metadata" | "auto";
   playsInline?: boolean;
-  resumeTime: number;
+  initialTime: number;
   subtitleUrl?: string | null;
   onLoadedMetadata?: VideoHandler;
   onCanPlay?: VideoHandler;
@@ -43,17 +51,20 @@ interface VidstackVideoProps {
   onPlaying?: VideoHandler;
   onTimeUpdate?: VideoHandler;
   onEnded?: VideoHandler;
+  onPlaybackRequestError?: (errorCode: string) => void;
+  onDiagnostic?: (event: string, errorCode?: string) => void;
 }
 
 export function VidstackVideo({
   mediaRef,
+  sourceId,
   title,
   className,
   src,
   autoPlay = false,
   preload = "metadata",
   playsInline = true,
-  resumeTime,
+  initialTime,
   subtitleUrl,
   onLoadedMetadata,
   onCanPlay,
@@ -67,16 +78,25 @@ export function VidstackVideo({
   onPlaying,
   onTimeUpdate,
   onEnded,
+  onPlaybackRequestError,
+  onDiagnostic,
 }: VidstackVideoProps) {
-  const applyResumeTime = () => {
-    const video = mediaRef.current;
+  const playerRef = useRef<MediaPlayerInstance | null>(null);
+  const resumedSourceRef = useRef<string | null>(null);
+  const autoplaySourceRef = useRef<string | null>(null);
+  const [canPictureInPicture, setCanPictureInPicture] = useState(false);
+  const [pictureInPicture, setPictureInPicture] = useState(false);
+  const [pictureInPictureError, setPictureInPictureError] = useState<string | null>(null);
 
-    if (
-      video &&
-      resumeTime > 0 &&
-      Math.abs(video.currentTime - resumeTime) > 1
-    ) {
-      video.currentTime = resumeTime;
+  const applyInitialTime = () => {
+    const video = mediaRef.current;
+    if (!video || !sourceId || resumedSourceRef.current === sourceId) {
+      return;
+    }
+
+    resumedSourceRef.current = sourceId;
+    if (initialTime > 0 && Math.abs(video.currentTime - initialTime) > 1) {
+      video.currentTime = initialTime;
     }
   };
 
@@ -106,10 +126,13 @@ export function VidstackVideo({
     handler?: VideoHandler,
   ) => {
     const video = mediaRef.current;
-
     if (video && handler) {
       handler(createEvent(type, video));
     }
+  };
+
+  const updatePictureInPictureSupport = () => {
+    setCanPictureInPicture(canUsePictureInPicture(mediaRef.current));
   };
 
   const handleProviderSetup = (
@@ -120,16 +143,55 @@ export function VidstackVideo({
     }
 
     mediaRef.current = provider.video;
-    applyResumeTime();
+    updatePictureInPictureSupport();
+  };
+
+  const requestAutoPlay = () => {
+    if (!autoPlay || !sourceId || autoplaySourceRef.current === sourceId) {
+      return;
+    }
+
+    autoplaySourceRef.current = sourceId;
+    const request = playerRef.current?.play() ?? mediaRef.current?.play();
+    void request?.catch((error: unknown) => {
+      onPlaybackRequestError?.(errorCode(error));
+    });
+  };
+
+  const toggleTestPictureInPicture = async () => {
+    try {
+      setPictureInPictureError(null);
+      if (pictureInPicture) {
+        await document.exitPictureInPicture();
+        setPictureInPicture(false);
+        onDiagnostic?.("picture-in-picture-exit");
+      } else {
+        await mediaRef.current?.requestPictureInPicture();
+        setPictureInPicture(true);
+        onDiagnostic?.("picture-in-picture-enter");
+      }
+    } catch (error) {
+      onDiagnostic?.("picture-in-picture-error", errorCode(error));
+      setPictureInPictureError(
+        `Picture-in-Picture could not be ${pictureInPicture ? "closed" : "opened"} (${errorCode(error)}).`,
+      );
+    }
   };
 
   useEffect(() => {
-    applyResumeTime();
-  }, [resumeTime, src]);
+    if (!sourceId) {
+      setPictureInPictureError(null);
+    }
+  }, [sourceId]);
+
+  useEffect(() => {
+    updatePictureInPictureSupport();
+  }, [src]);
 
   useEffect(
     () => () => {
       mediaRef.current = null;
+      playerRef.current = null;
     },
     [mediaRef],
   );
@@ -143,14 +205,16 @@ export function VidstackVideo({
           }}
           className={className}
           src={src}
-          autoPlay={autoPlay}
           preload={preload}
           playsInline={playsInline}
           onLoadedMetadata={(event) => {
-            applyResumeTime();
+            applyInitialTime();
             onLoadedMetadata?.(event);
           }}
-          onCanPlay={onCanPlay}
+          onCanPlay={(event) => {
+            onCanPlay?.(event);
+            requestAutoPlay();
+          }}
           onError={onError}
           onPlay={onPlay}
           onPause={onPause}
@@ -172,72 +236,117 @@ export function VidstackVideo({
             />
           ) : null}
         </video>
+        {canPictureInPicture ? (
+          <button type="button" onClick={() => void toggleTestPictureInPicture()}>
+            {pictureInPicture ? "Exit" : "Enter"} Picture-in-Picture
+          </button>
+        ) : null}
+        {pictureInPictureError ? <div role="alert">{pictureInPictureError}</div> : null}
       </div>
     );
   }
 
   return (
-    <MediaPlayer
-      className={`${className ?? ""} workspace-video-player`.trim()}
-      title={title}
-      src={src}
-      autoPlay={autoPlay}
-      preload={preload}
-      playsInline={playsInline}
-      viewType="video"
-      streamType="on-demand"
-      onProviderSetup={handleProviderSetup}
-      onLoadedMetadata={() => {
-        applyResumeTime();
-        emit("loadedmetadata", onLoadedMetadata);
-      }}
-      onCanPlay={() => {
-        emit("canplay", onCanPlay);
-      }}
-      onError={() => {
-        emit("error", onError);
-      }}
-      onPlay={() => {
-        emit("play", onPlay);
-      }}
-      onPause={() => {
-        emit("pause", onPause);
-      }}
-      onSeeking={() => {
-        emit("seeking", onSeeking);
-      }}
-      onSeeked={() => {
-        emit("seeked", onSeeked);
-      }}
-      onWaiting={() => {
-        emit("waiting", onWaiting);
-        emit("stalled", onStalled);
-      }}
-      onPlaying={() => {
-        emit("playing", onPlaying);
-      }}
-      onTimeUpdate={() => {
-        emit("timeupdate", onTimeUpdate);
-      }}
-      onEnded={() => {
-        emit("ended", onEnded);
-      }}
-    >
-      <MediaProvider>
-        {subtitleUrl ? (
-          <Track
-            src={subtitleUrl}
-            kind="subtitles"
-            label="English"
-            lang="en"
-            default
-          />
-        ) : null}
-      </MediaProvider>
+    <>
+      <MediaPlayer
+        ref={playerRef}
+        className={`${className ?? ""} workspace-video-player`.trim()}
+        title={title}
+        src={src}
+        autoPlay={false}
+        preload={preload}
+        playsInline={playsInline}
+        viewType="video"
+        streamType="on-demand"
+        onProviderSetup={handleProviderSetup}
+        onLoadedMetadata={() => {
+          applyInitialTime();
+          emit("loadedmetadata", onLoadedMetadata);
+        }}
+        onCanPlay={() => {
+          emit("canplay", onCanPlay);
+          requestAutoPlay();
+        }}
+        onError={() => {
+          emit("error", onError);
+        }}
+        onPlay={() => {
+          emit("play", onPlay);
+        }}
+        onPause={() => {
+          emit("pause", onPause);
+        }}
+        onSeeking={() => {
+          emit("seeking", onSeeking);
+        }}
+        onSeeked={() => {
+          emit("seeked", onSeeked);
+        }}
+        onWaiting={() => {
+          emit("waiting", onWaiting);
+        }}
+        onStalled={() => {
+          emit("stalled", onStalled);
+        }}
+        onPlaying={() => {
+          emit("playing", onPlaying);
+        }}
+        onTimeUpdate={() => {
+          emit("timeupdate", onTimeUpdate);
+        }}
+        onEnded={() => {
+          emit("ended", onEnded);
+        }}
+        onPictureInPictureChange={(active) => {
+          setPictureInPicture(active);
+          setPictureInPictureError(null);
+          onDiagnostic?.(active ? "picture-in-picture-enter" : "picture-in-picture-exit");
+        }}
+        onPictureInPictureError={(error) => {
+          onDiagnostic?.("picture-in-picture-error", errorCode(error));
+          setPictureInPictureError(
+            `Picture-in-Picture request failed (${errorCode(error)}).`,
+          );
+        }}
+      >
+        <MediaProvider>
+          {subtitleUrl ? (
+            <Track
+              src={subtitleUrl}
+              kind="subtitles"
+              label="English"
+              lang="en"
+              default
+            />
+          ) : null}
+        </MediaProvider>
 
-      <DefaultVideoLayout
-        icons={defaultLayoutIcons}
-      />
-    </MediaPlayer>
+        <DefaultVideoLayout
+          icons={defaultLayoutIcons}
+          slots={{
+            pipButton: canPictureInPicture ? (
+              <PIPButton
+                className="vds-button"
+                aria-label={`${pictureInPicture ? "Exit" : "Enter"} Picture-in-Picture`}
+              >
+                {pictureInPicture
+                  ? <PictureInPictureExitIcon className="vds-icon" />
+                  : <PictureInPictureIcon className="vds-icon" />}
+              </PIPButton>
+            ) : null,
+          }}
+        />
+      </MediaPlayer>
+      {pictureInPictureError ? (
+        <div className="workspace-playback-error" role="alert">{pictureInPictureError}</div>
+      ) : null}
+    </>
   );
+}
+
+function errorCode(error: unknown): string {
+  if (error instanceof DOMException || error instanceof Error) {
+    return error.name || "Error";
+  }
+  return "unknown";
 }

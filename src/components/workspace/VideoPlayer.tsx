@@ -41,10 +41,12 @@ export function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastWatchTimeRef = useRef<number | null>(null);
   const watchedRemainderRef = useRef(0);
+  const sourceRequestRef = useRef(0);
   const [subtitleUrl, setSubtitleUrl] = useState<string | null>(null);
   const [subtitleStatus, setSubtitleStatus] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoSource, setVideoSource] = useState<LessonMediaSource | null>(null);
   const [videoError, setVideoError] = useState<VideoErrorDetails | null>(null);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [openError, setOpenError] = useState<string | null>(null);
 
   const flushWatchedTime = (flushPersistence = false) => {
@@ -69,39 +71,28 @@ export function VideoPlayer({
   };
 
   useEffect(() => {
-    const element = videoRef.current;
-    if (!element || !selectedEntry || selectedEntry.kind !== "video") {
-      return;
-    }
-
-    const applyResumeTime = () => {
-      if (resumeTime > 0 && Math.abs(element.currentTime - resumeTime) > 1) {
-        element.currentTime = resumeTime;
-      }
-    };
-
-    applyResumeTime();
-    element.addEventListener("loadedmetadata", applyResumeTime);
-    return () => {
-      onStudyActivityChange?.(false);
-      element.removeEventListener("loadedmetadata", applyResumeTime);
-    };
-  }, [resumeTime, selectedEntry?.absolutePath, selectedEntry?.kind]);
-
-  useEffect(() => {
     lastWatchTimeRef.current = null;
     if (!selectedEntry || selectedEntry.kind !== "video") {
+      sourceRequestRef.current += 1;
+      setVideoSource(null);
       setSubtitleUrl(null);
       setSubtitleStatus(null);
       return;
     }
 
+    const requestId = sourceRequestRef.current + 1;
+    sourceRequestRef.current = requestId;
     let active = true;
     const watchedElement = videoRef.current;
+    const lessonId = selectedEntry.relativePath;
+    const initialTime = resumeTime;
+    const shouldAutoPlay = autoPlay;
+    recordMediaEvent("source-request", watchedElement, lessonId);
     setVideoError(null);
+    setPlaybackError(null);
     setOpenError(null);
-    setVideoUrl(null);
-    console.info("Selected video absolute path", selectedEntry.absolutePath);
+    setVideoSource(null);
+    onStudyActivityChange?.(false);
 
     const loadUrl = courseRoot && isTauriRuntime()
       ? courseMediaUrl(courseRoot, selectedEntry.absolutePath)
@@ -109,26 +100,32 @@ export function VideoPlayer({
 
     void loadUrl
       .then((url) => {
-        if (!active) {
+        if (!active || sourceRequestRef.current !== requestId) {
           return;
         }
-        setVideoUrl(url);
-        console.info("Selected video src", url);
-      })
-      .catch((error) => {
-        if (!active) {
-          return;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        setVideoError({
-          path: selectedEntry.absolutePath,
-          src: "",
-          summary: `media URL error - ${message}`,
+        setVideoSource({
+          autoPlay: shouldAutoPlay,
+          initialTime,
+          lessonId,
+          url,
         });
+        recordMediaEvent("source-activate", videoRef.current, lessonId);
+      })
+      .catch((error: unknown) => {
+        if (!active || sourceRequestRef.current !== requestId) {
+          return;
+        }
+        setVideoError({
+          code: safeErrorCode(error),
+          summary: "Media URL request failed",
+        });
+        recordMediaEvent("source-error", videoRef.current, lessonId, safeErrorCode(error));
       });
 
     return () => {
       active = false;
+      sourceRequestRef.current += 1;
+      onStudyActivityChange?.(false);
       if (watchedElement && lastWatchTimeRef.current !== null) {
         captureWatchedTime(watchedElement.currentTime);
       }
@@ -136,7 +133,7 @@ export function VideoPlayer({
       watchedRemainderRef.current = 0;
       lastWatchTimeRef.current = null;
     };
-  }, [courseRoot, selectedEntry]);
+  }, [autoPlay, courseRoot, selectedEntry?.absolutePath, selectedEntry?.kind, selectedEntry?.relativePath]);
 
   useEffect(() => {
     if (!subtitleEntry || subtitleEntry.kind !== "subtitle") {
@@ -203,6 +200,10 @@ export function VideoPlayer({
     );
   }
 
+  const activeSource = videoSource?.lessonId === selectedEntry.relativePath
+    ? videoSource
+    : null;
+
   const openInSystemPlayer = async () => {
     if (!courseRoot) {
       setOpenError("Open a course folder before using the system player");
@@ -221,67 +222,73 @@ export function VideoPlayer({
   return (
     <div className="workspace-preview">
       <VidstackVideo
-        key={selectedEntry.absolutePath}
         mediaRef={videoRef}
+        sourceId={activeSource?.lessonId}
         className="workspace-video"
-        autoPlay={autoPlay}
+        autoPlay={activeSource?.autoPlay ?? false}
         preload="metadata"
-        src={videoUrl ?? undefined}
+        src={activeSource?.url}
         playsInline
         onLoadedMetadata={(event) => {
           showSubtitleTracks(event.currentTarget);
           setVideoError(null);
-          console.info("Video loaded metadata", {
-            duration: event.currentTarget.duration,
-            height: event.currentTarget.videoHeight,
-            src: event.currentTarget.currentSrc || videoUrl || "",
-            width: event.currentTarget.videoWidth,
-          });
+          recordMediaEvent("loadedmetadata", event.currentTarget, activeSource?.lessonId);
         }}
         onCanPlay={(event) => {
           setVideoError(null);
-          console.info("Video can play", {
-            src: event.currentTarget.currentSrc || videoUrl || "",
-          });
+          recordMediaEvent("canplay", event.currentTarget, activeSource?.lessonId);
         }}
         onError={(event) => {
-          const errorDetails = describeVideoError(
-            event.currentTarget.error,
-            event.currentTarget.currentSrc || videoUrl || "",
-            selectedEntry.absolutePath,
-          );
+          const errorDetails = describeVideoError(event.currentTarget.error);
           setVideoError(errorDetails);
-          console.error("Video error", {
-            code: event.currentTarget.error?.code,
-            message: event.currentTarget.error?.message,
-            path: selectedEntry.absolutePath,
-            src: event.currentTarget.currentSrc || videoUrl || "",
-          });
+          recordMediaEvent(
+            "error",
+            event.currentTarget,
+            activeSource?.lessonId,
+            errorDetails.code,
+          );
         }}
         onPlay={(event) => {
+          recordMediaEvent("play", event.currentTarget, activeSource?.lessonId);
           lastWatchTimeRef.current = event.currentTarget.currentTime;
           onStudyActivityChange?.(!event.currentTarget.seeking);
         }}
         onPause={(event) => {
+          recordMediaEvent("pause", event.currentTarget, activeSource?.lessonId);
           onStudyActivityChange?.(false);
           captureWatchedTime(event.currentTarget.currentTime);
           flushWatchedTime(true);
           lastWatchTimeRef.current = null;
         }}
-        onSeeking={() => {
+        onSeeking={(event) => {
+          recordMediaEvent("seeking", event.currentTarget, activeSource?.lessonId);
           onStudyActivityChange?.(false);
           lastWatchTimeRef.current = null;
         }}
         onSeeked={(event) => {
+          recordMediaEvent("seeked", event.currentTarget, activeSource?.lessonId);
           lastWatchTimeRef.current = event.currentTarget.currentTime;
           onStudyActivityChange?.(!event.currentTarget.paused && !event.currentTarget.ended);
         }}
-        onWaiting={() => onStudyActivityChange?.(false)}
-        onStalled={() => onStudyActivityChange?.(false)}
-        onPlaying={(event) => onStudyActivityChange?.(
-          !event.currentTarget.paused && !event.currentTarget.ended && !event.currentTarget.seeking,
-        )}
+        onWaiting={(event) => {
+          recordMediaEvent("waiting", event.currentTarget, activeSource?.lessonId);
+          onStudyActivityChange?.(false);
+        }}
+        onStalled={(event) => {
+          recordMediaEvent("stalled", event.currentTarget, activeSource?.lessonId);
+          onStudyActivityChange?.(false);
+        }}
+        onPlaying={(event) => {
+          setPlaybackError(null);
+          recordMediaEvent("playing", event.currentTarget, activeSource?.lessonId);
+          onStudyActivityChange?.(
+            !event.currentTarget.paused && !event.currentTarget.ended && !event.currentTarget.seeking,
+          );
+        }}
         onTimeUpdate={(event) => {
+          if (!activeSource) {
+            return;
+          }
           const currentTime = event.currentTarget.currentTime;
           onProgressChange(currentTime);
           if (event.currentTarget.seeking) {
@@ -294,6 +301,9 @@ export function VideoPlayer({
           captureWatchedTime(currentTime);
         }}
         onEnded={(event) => {
+          if (!activeSource) {
+            return;
+          }
           onStudyActivityChange?.(false);
           captureWatchedTime(event.currentTarget.currentTime);
           flushWatchedTime(true);
@@ -304,10 +314,20 @@ export function VideoPlayer({
           onProgressChange(completedSeconds);
           onEnded(completedSeconds);
         }}
+        onPlaybackRequestError={(errorCode) => {
+          setPlaybackError("Playback did not start automatically. Press play to continue.");
+          recordMediaEvent("play-fail", videoRef.current, activeSource?.lessonId, errorCode);
+        }}
+        onDiagnostic={(event, errorCode) => {
+          recordMediaEvent(event, videoRef.current, activeSource?.lessonId, errorCode);
+        }}
         title={selectedEntry.name}
-        resumeTime={resumeTime}
+        initialTime={activeSource?.initialTime ?? 0}
         subtitleUrl={subtitleUrl}
       />
+      {playbackError ? (
+        <div className="workspace-playback-error" role="alert">{playbackError}</div>
+      ) : null}
       <button className="workspace-open-button" type="button" onClick={openInSystemPlayer}>
         <ExternalLink aria-hidden="true" />
         Open in system player
@@ -319,8 +339,6 @@ export function VideoPlayer({
           <div className="workspace-subtitle">
             <div>Video failed to load</div>
             <div>Error: {videoError.summary}</div>
-            <div>Source: {videoError.src}</div>
-            <div>Path: {videoError.path}</div>
           </div>
         ) : null}
         {openError ? <div className="workspace-subtitle">{openError}</div> : null}
@@ -343,16 +361,18 @@ function showSubtitleTracks(video: HTMLVideoElement) {
 }
 
 interface VideoErrorDetails {
+  code: string;
   summary: string;
-  src: string;
-  path: string;
 }
 
-function describeVideoError(
-  error: MediaError | null,
-  src: string,
-  path: string,
-): VideoErrorDetails {
+interface LessonMediaSource {
+  autoPlay: boolean;
+  initialTime: number;
+  lessonId: string;
+  url: string;
+}
+
+function describeVideoError(error: MediaError | null): VideoErrorDetails {
   const label =
     error?.code === 1
       ? "aborted"
@@ -363,11 +383,36 @@ function describeVideoError(
           : error?.code === 4
             ? "source not supported"
             : "unknown";
-  const details = error?.message ? ` - ${error.message}` : "";
-
   return {
-    path,
-    src,
-    summary: `code ${error?.code ?? "unknown"} ${label}${details}`,
+    code: String(error?.code ?? "unknown"),
+    summary: `code ${error?.code ?? "unknown"} ${label}`,
   };
+}
+
+function safeErrorCode(error: unknown): string {
+  if (error instanceof DOMException || error instanceof Error) {
+    return error.name || "Error";
+  }
+  return "unknown";
+}
+
+function recordMediaEvent(
+  event: string,
+  media: HTMLVideoElement | null,
+  lessonId?: string,
+  errorCode?: string,
+) {
+  console.info("media-event", {
+    errorCode,
+    event,
+    lessonId: lessonId ?? null,
+    state: media
+      ? {
+          ended: media.ended,
+          paused: media.paused,
+          readyState: media.readyState,
+          seeking: media.seeking,
+        }
+      : null,
+  });
 }

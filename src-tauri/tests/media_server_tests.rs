@@ -2,7 +2,7 @@
 mod media_server;
 
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{Cursor, Read, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::thread;
@@ -150,4 +150,117 @@ fn waits_for_complete_http_headers_before_responding() {
     assert!(response.ends_with("2345"));
 
     fs::remove_dir_all(root).expect("cleanup");
+}
+
+#[test]
+fn serves_open_ended_byte_ranges() {
+    let root = make_temp_course_dir();
+    let video_path = root.join("lesson.mp4");
+    fs::write(&video_path, b"0123456789").expect("write video");
+
+    let response = request_media(&root, &video_path, "GET", Some("bytes=6-"));
+
+    assert!(response.starts_with(b"HTTP/1.1 206 Partial Content"));
+    assert!(header_contains(&response, b"Content-Length: 4"));
+    assert!(header_contains(&response, b"Content-Range: bytes 6-9/10"));
+    assert_eq!(response_body(&response), b"6789");
+
+    fs::remove_dir_all(root).expect("cleanup");
+}
+
+#[test]
+fn head_responses_preserve_full_and_range_lengths_without_a_body() {
+    let root = make_temp_course_dir();
+    let video_path = root.join("lesson.mp4");
+    fs::write(&video_path, b"0123456789").expect("write video");
+
+    let full = request_media(&root, &video_path, "HEAD", None);
+    assert!(full.starts_with(b"HTTP/1.1 200 OK"));
+    assert!(header_contains(&full, b"Content-Length: 10"));
+    assert!(response_body(&full).is_empty());
+
+    let range = request_media(&root, &video_path, "HEAD", Some("bytes=2-5"));
+    assert!(range.starts_with(b"HTTP/1.1 206 Partial Content"));
+    assert!(header_contains(&range, b"Content-Length: 4"));
+    assert!(header_contains(&range, b"Content-Range: bytes 2-5/10"));
+    assert!(response_body(&range).is_empty());
+
+    fs::remove_dir_all(root).expect("cleanup");
+}
+
+#[test]
+fn copies_large_bodies_with_bounded_reads() {
+    let bytes = vec![7_u8; 200_000];
+    let mut reader = MeasuringReader::new(bytes.clone());
+    let mut output = Vec::new();
+
+    media_server::copy_exact(&mut reader, &mut output, bytes.len() as u64)
+        .expect("copy body");
+
+    assert_eq!(output, bytes);
+    assert!(reader.max_requested <= 64 * 1024);
+}
+
+fn request_media(
+    root: &std::path::Path,
+    video_path: &std::path::Path,
+    method: &str,
+    range: Option<&str>,
+) -> Vec<u8> {
+    let url = media_server::course_media_url(
+        root.to_string_lossy().to_string(),
+        video_path.to_string_lossy().to_string(),
+    )
+    .expect("build media url");
+    let (host_port, path) = url
+        .trim_start_matches("http://")
+        .split_once('/')
+        .expect("split url");
+    let mut stream = TcpStream::connect(host_port).expect("connect media server");
+    write!(stream, "{method} /{path} HTTP/1.1\r\nHost: {host_port}\r\n")
+        .expect("write request line");
+    if let Some(range) = range {
+        write!(stream, "Range: {range}\r\n").expect("write range");
+    }
+    write!(stream, "\r\n").expect("finish request");
+    let mut response = Vec::new();
+    stream.read_to_end(&mut response).expect("read response");
+    response
+}
+
+fn header_contains(response: &[u8], expected: &[u8]) -> bool {
+    response
+        .windows(expected.len())
+        .any(|window| window == expected)
+}
+
+fn response_body(response: &[u8]) -> &[u8] {
+    let separator = b"\r\n\r\n";
+    let start = response
+        .windows(separator.len())
+        .position(|window| window == separator)
+        .expect("response header separator")
+        + separator.len();
+    &response[start..]
+}
+
+struct MeasuringReader {
+    inner: Cursor<Vec<u8>>,
+    max_requested: usize,
+}
+
+impl MeasuringReader {
+    fn new(bytes: Vec<u8>) -> Self {
+        Self {
+            inner: Cursor::new(bytes),
+            max_requested: 0,
+        }
+    }
+}
+
+impl Read for MeasuringReader {
+    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+        self.max_requested = self.max_requested.max(buffer.len());
+        self.inner.read(buffer)
+    }
 }

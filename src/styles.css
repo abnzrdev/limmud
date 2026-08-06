@@ -642,6 +642,7 @@ textarea:focus-visible {
 }
 
 .workspace-preview {
+  position: relative;
   min-height: 0;
   border: 0;
   background: transparent;
@@ -668,6 +669,21 @@ textarea:focus-visible {
 .workspace-open-button {
   justify-self: start;
   padding: 0.45rem 0.7rem;
+}
+
+.workspace-playback-error {
+  position: absolute;
+  z-index: 3;
+  align-self: end;
+  justify-self: center;
+  max-width: calc(100% - 24px);
+  margin: 12px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-danger);
+  border-radius: 6px;
+  color: var(--app-copy);
+  background: color-mix(in srgb, var(--app-panel-bg) 90%, transparent);
+  font-size: 0.82rem;
 }
 
 .workspace-video-meta {

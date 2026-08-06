@@ -30,6 +30,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 it("shows a desktop-runtime hint outside Tauri", () => {
@@ -257,7 +258,7 @@ it("shows a subtitle error when srt conversion fails", async () => {
   expect(await screen.findByText("Subtitle: lesson.srt (Subtitle failed to load)")).toBeInTheDocument();
 });
 
-it("shows the exact video load error when playback fails", async () => {
+it("shows the video error code without exposing its source or path", async () => {
   tauriRuntime = true;
   courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1:1234/token/week1/lesson%20one.mp4");
 
@@ -293,11 +294,9 @@ it("shows the exact video load error when playback fails", async () => {
   fireEvent.error(video);
 
   expect(screen.getByText("Video failed to load")).toBeInTheDocument();
-  expect(screen.getByText("Error: code 4 source not supported - Format not supported")).toBeInTheDocument();
-  expect(
-    screen.getByText("Source: http://127.0.0.1:1234/token/week1/lesson%20one.mp4"),
-  ).toBeInTheDocument();
-  expect(screen.getByText("Path: /tmp/week1/lesson one.mp4")).toBeInTheDocument();
+  expect(screen.getByText("Error: code 4 source not supported")).toBeInTheDocument();
+  expect(screen.queryByText(/Source:/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Path:/)).not.toBeInTheDocument();
 });
 
 it("calls the ended handler with the completed duration", async () => {
@@ -487,6 +486,278 @@ it("captures the final fractional interval when playback pauses", () => {
 
   expect(onWatchedSeconds).toHaveBeenCalledWith(1, "/tmp/course");
 });
+
+it("never renders the previous lesson URL while the next URL is pending", async () => {
+  tauriRuntime = true;
+  courseMediaUrl
+    .mockResolvedValueOnce("http://127.0.0.1/old.mp4")
+    .mockReturnValueOnce(new Promise(() => {}));
+
+  const { container, rerender } = renderVideoPlayer(videoEntry("old"));
+  const video = container.querySelector("video") as HTMLVideoElement;
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/old.mp4"));
+
+  rerender(videoPlayerElement(videoEntry("next")));
+
+  expect(container.querySelector("video")).toBe(video);
+  expect(video).not.toHaveAttribute("src");
+});
+
+it("ignores a media URL that resolves after its lesson was replaced", async () => {
+  tauriRuntime = true;
+  const oldUrl = deferred<string>();
+  const nextUrl = deferred<string>();
+  courseMediaUrl
+    .mockReturnValueOnce(oldUrl.promise)
+    .mockReturnValueOnce(nextUrl.promise);
+
+  const { container, rerender } = renderVideoPlayer(videoEntry("old"));
+  const video = container.querySelector("video") as HTMLVideoElement;
+  rerender(videoPlayerElement(videoEntry("next")));
+
+  oldUrl.resolve("http://127.0.0.1/old.mp4");
+  await Promise.resolve();
+  expect(video).not.toHaveAttribute("src");
+
+  nextUrl.resolve("http://127.0.0.1/next.mp4");
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/next.mp4"));
+});
+
+it("applies saved progress once after metadata for each source", async () => {
+  tauriRuntime = true;
+  courseMediaUrl
+    .mockResolvedValueOnce("http://127.0.0.1/old.mp4")
+    .mockResolvedValueOnce("http://127.0.0.1/next.mp4");
+  const { container, rerender } = renderVideoPlayer(videoEntry("old"), { resumeTime: 42 });
+  const video = container.querySelector("video") as HTMLVideoElement;
+  let currentTime = 0;
+  const seeks: number[] = [];
+  Object.defineProperty(video, "currentTime", {
+    configurable: true,
+    get: () => currentTime,
+    set: (value: number) => {
+      seeks.push(value);
+      currentTime = value;
+    },
+  });
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/old.mp4"));
+  fireEvent.loadedMetadata(video);
+
+  rerender(videoPlayerElement(videoEntry("old"), { resumeTime: 84 }));
+  fireEvent.loadedMetadata(video);
+  expect(seeks).toEqual([42]);
+
+  rerender(videoPlayerElement(videoEntry("next"), { resumeTime: 11 }));
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/next.mp4"));
+  fireEvent.loadedMetadata(video);
+  expect(seeks).toEqual([42, 11]);
+});
+
+it("keeps the current position through pause and resume persistence updates", async () => {
+  tauriRuntime = true;
+  courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/lesson.mp4");
+  const { container, rerender } = renderVideoPlayer(videoEntry("lesson"), { resumeTime: 20 });
+  const video = container.querySelector("video") as HTMLVideoElement;
+  let currentTime = 0;
+  const seeks: number[] = [];
+  Object.defineProperty(video, "currentTime", {
+    configurable: true,
+    get: () => currentTime,
+    set: (value: number) => {
+      seeks.push(value);
+      currentTime = value;
+    },
+  });
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/lesson.mp4"));
+  fireEvent.loadedMetadata(video);
+  currentTime = 37;
+
+  fireEvent.pause(video);
+  rerender(videoPlayerElement(videoEntry("lesson"), { resumeTime: 37 }));
+  fireEvent.play(video);
+
+  expect(currentTime).toBe(37);
+  expect(seeks).toEqual([20]);
+});
+
+it("keeps an intentional seek through pause and resume", async () => {
+  tauriRuntime = true;
+  courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/lesson.mp4");
+  const { container, rerender } = renderVideoPlayer(videoEntry("lesson"), { resumeTime: 10 });
+  const video = container.querySelector("video") as HTMLVideoElement;
+  let currentTime = 0;
+  const seeks: number[] = [];
+  Object.defineProperty(video, "currentTime", {
+    configurable: true,
+    get: () => currentTime,
+    set: (value: number) => {
+      seeks.push(value);
+      currentTime = value;
+    },
+  });
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/lesson.mp4"));
+  fireEvent.loadedMetadata(video);
+  currentTime = 75;
+  fireEvent.seeking(video);
+  fireEvent.seeked(video);
+  fireEvent.pause(video);
+  rerender(videoPlayerElement(videoEntry("lesson"), { resumeTime: 75 }));
+  fireEvent.play(video);
+
+  expect(currentTime).toBe(75);
+  expect(seeks).toEqual([10]);
+});
+
+it("requests playback when an automatically selected source becomes ready", async () => {
+  tauriRuntime = true;
+  courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/next.mp4");
+  const { container } = renderVideoPlayer(videoEntry("next"), { autoPlay: true });
+  const video = container.querySelector("video") as HTMLVideoElement;
+  const play = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(video, "play", { configurable: true, value: play });
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/next.mp4"));
+
+  fireEvent.canPlay(video);
+
+  await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+});
+
+it("shows a recoverable error when automatic playback is rejected", async () => {
+  tauriRuntime = true;
+  courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/next.mp4");
+  const { container } = renderVideoPlayer(videoEntry("next"), { autoPlay: true });
+  const video = container.querySelector("video") as HTMLVideoElement;
+  Object.defineProperty(video, "play", {
+    configurable: true,
+    value: vi.fn().mockRejectedValue(new DOMException("Not allowed", "NotAllowedError")),
+  });
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/next.mp4"));
+
+  fireEvent.canPlay(video);
+
+  expect(await screen.findByText("Playback did not start automatically. Press play to continue.")).toBeInTheDocument();
+});
+
+it("records playback events without logging URLs or absolute paths", async () => {
+  tauriRuntime = true;
+  courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/private-token/lesson.mp4");
+  const info = vi.spyOn(console, "info").mockImplementation(() => {});
+  const { container } = renderVideoPlayer(videoEntry("lesson"));
+  const video = container.querySelector("video") as HTMLVideoElement;
+  await waitFor(() => expect(video).toHaveAttribute("src"));
+
+  fireEvent.play(video);
+  fireEvent.waiting(video);
+  fireEvent.stalled(video);
+  fireEvent.seeking(video);
+  fireEvent.seeked(video);
+  fireEvent.pause(video);
+
+  const records = info.mock.calls.map(([, record]) => record as { event: string });
+  expect(records.map(({ event }) => event)).toEqual(expect.arrayContaining([
+    "source-request",
+    "source-activate",
+    "play",
+    "waiting",
+    "stalled",
+    "seeking",
+    "seeked",
+    "pause",
+  ]));
+  const serialized = JSON.stringify(info.mock.calls);
+  expect(serialized).not.toContain("127.0.0.1");
+  expect(serialized).not.toContain("/tmp/");
+  expect(serialized).not.toContain("private-token");
+});
+
+it("shows Picture-in-Picture only when the current provider supports it", async () => {
+  tauriRuntime = true;
+  courseMediaUrl.mockResolvedValue("http://127.0.0.1/lesson.mp4");
+  Object.defineProperty(document, "pictureInPictureEnabled", { configurable: true, value: false });
+  const unsupported = renderVideoPlayer(videoEntry("lesson"));
+  expect(screen.queryByRole("button", { name: "Enter Picture-in-Picture" })).not.toBeInTheDocument();
+  unsupported.unmount();
+
+  Object.defineProperty(document, "pictureInPictureEnabled", { configurable: true, value: true });
+  const supported = renderVideoPlayer(videoEntry("lesson"));
+  const video = supported.container.querySelector("video") as HTMLVideoElement;
+  Object.defineProperty(video, "requestPictureInPicture", {
+    configurable: true,
+    value: vi.fn().mockResolvedValue({}),
+  });
+  const exitPictureInPicture = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(document, "exitPictureInPicture", {
+    configurable: true,
+    value: exitPictureInPicture,
+  });
+
+  fireEvent.click(await screen.findByRole("button", { name: "Enter Picture-in-Picture" }));
+  expect(video.requestPictureInPicture).toHaveBeenCalledTimes(1);
+  fireEvent.click(await screen.findByRole("button", { name: "Exit Picture-in-Picture" }));
+  expect(exitPictureInPicture).toHaveBeenCalledTimes(1);
+});
+
+it("reports Picture-in-Picture permission failures without replacing the player", async () => {
+  tauriRuntime = true;
+  courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/lesson.mp4");
+  Object.defineProperty(document, "pictureInPictureEnabled", { configurable: true, value: true });
+  const { container } = renderVideoPlayer(videoEntry("lesson"));
+  const video = container.querySelector("video") as HTMLVideoElement;
+  Object.defineProperty(video, "requestPictureInPicture", {
+    configurable: true,
+    value: vi.fn().mockRejectedValue(new DOMException("Denied", "NotAllowedError")),
+  });
+  const originalVideo = video;
+
+  fireEvent.click(await screen.findByRole("button", { name: "Enter Picture-in-Picture" }));
+
+  expect(await screen.findByText("Picture-in-Picture could not be opened (NotAllowedError).")).toBeInTheDocument();
+  expect(container.querySelector("video")).toBe(originalVideo);
+});
+
+function videoEntry(id: string) {
+  return {
+    id,
+    name: `${id}.mp4`,
+    relativePath: `week/${id}.mp4`,
+    absolutePath: `/tmp/course/week/${id}.mp4`,
+    kind: "video" as const,
+  };
+}
+
+function videoPlayerElement(
+  selectedEntry: ReturnType<typeof videoEntry>,
+  options: { resumeTime?: number; autoPlay?: boolean } = {},
+) {
+  return (
+    <VideoPlayer
+      courseRoot="/tmp/course"
+      selectedEntry={selectedEntry}
+      subtitleEntry={null}
+      resumeTime={options.resumeTime ?? 0}
+      autoPlay={options.autoPlay}
+      onProgressChange={() => {}}
+      onEnded={() => {}}
+    />
+  );
+}
+
+function renderVideoPlayer(
+  selectedEntry: ReturnType<typeof videoEntry>,
+  options: { resumeTime?: number; autoPlay?: boolean } = {},
+) {
+  return render(videoPlayerElement(selectedEntry, options));
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
 
 function setTime(video: HTMLVideoElement, value: number) {
   Object.defineProperty(video, "currentTime", { configurable: true, value });

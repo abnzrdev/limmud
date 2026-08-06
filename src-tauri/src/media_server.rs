@@ -226,21 +226,19 @@ fn serve_file(
 
     if let Some((start, end)) = range.and_then(|value| parse_range(value, len)) {
         let count = end - start + 1;
-        let mut body = vec![0_u8; count as usize];
         file.seek(SeekFrom::Start(start))?;
+        write_partial_headers(stream, content_type, len, start, end, count)?;
         if method == "GET" {
-            file.read_exact(&mut body)?;
-        } else {
-            body.clear();
+            copy_exact(&mut file, stream, count)?;
         }
-        return write_partial_response(stream, content_type, len, start, end, &body);
+        return Ok(());
     }
 
-    let mut body = Vec::new();
+    write_response_headers(stream, 200, "OK", content_type, len)?;
     if method == "GET" {
-        file.read_to_end(&mut body)?;
+        copy_exact(&mut file, stream, len)?;
     }
-    write_response(stream, 200, "OK", content_type, Some(len), &body)
+    Ok(())
 }
 
 fn parse_range(header: &str, len: u64) -> Option<(u64, u64)> {
@@ -256,20 +254,31 @@ fn parse_range(header: &str, len: u64) -> Option<(u64, u64)> {
     (start <= end && end < len).then_some((start, end))
 }
 
-fn write_partial_response(
+fn write_partial_headers(
     stream: &mut TcpStream,
     content_type: &str,
     total_len: u64,
     start: u64,
     end: u64,
-    body: &[u8],
+    content_len: u64,
 ) -> std::io::Result<()> {
     write!(
         stream,
-        "HTTP/1.1 206 Partial Content\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nContent-Range: bytes {start}-{end}/{total_len}\r\nAccept-Ranges: bytes\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n",
-        body.len()
-    )?;
-    stream.write_all(body)
+        "HTTP/1.1 206 Partial Content\r\nContent-Type: {content_type}\r\nContent-Length: {content_len}\r\nContent-Range: bytes {start}-{end}/{total_len}\r\nAccept-Ranges: bytes\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
+    )
+}
+
+fn write_response_headers(
+    stream: &mut TcpStream,
+    status: u16,
+    reason: &str,
+    content_type: &str,
+    content_len: u64,
+) -> std::io::Result<()> {
+    write!(
+        stream,
+        "HTTP/1.1 {status} {reason}\r\nContent-Type: {content_type}\r\nContent-Length: {content_len}\r\nAccept-Ranges: bytes\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
+    )
 }
 
 fn write_response(
@@ -281,11 +290,29 @@ fn write_response(
     body: &[u8],
 ) -> std::io::Result<()> {
     let length = content_len.unwrap_or(body.len() as u64);
-    write!(
-        stream,
-        "HTTP/1.1 {status} {reason}\r\nContent-Type: {content_type}\r\nContent-Length: {length}\r\nAccept-Ranges: bytes\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
-    )?;
+    write_response_headers(stream, status, reason, content_type, length)?;
     stream.write_all(body)
+}
+
+pub(crate) fn copy_exact<R: Read, W: Write>(
+    reader: &mut R,
+    writer: &mut W,
+    mut remaining: u64,
+) -> std::io::Result<()> {
+    let mut buffer = [0_u8; 64 * 1024];
+    while remaining > 0 {
+        let requested = remaining.min(buffer.len() as u64) as usize;
+        let read = reader.read(&mut buffer[..requested])?;
+        if read == 0 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "media file ended before the response body was complete",
+            ));
+        }
+        writer.write_all(&buffer[..read])?;
+        remaining -= read as u64;
+    }
+    Ok(())
 }
 
 fn content_type(path: &Path) -> &'static str {

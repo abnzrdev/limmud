@@ -139,6 +139,7 @@ describe("useAppModel auto advance", () => {
     await waitFor(() => expect(result.current.selectedEntry?.id).toBe("week-1/second.mp4"));
     expect(result.current.noteBody).toBe("Second notes");
     expect(result.current.resumeTime).toBe(0);
+    expect(result.current.shouldAutoPlaySelectedEntry).toBe(true);
     expect(result.current.completedLessons).toEqual(["Week 1/intro.mp4"]);
     expect(result.current.progressPercent).toBe(50);
     expect(result.current.status).toBe("Loaded /tmp/course");
