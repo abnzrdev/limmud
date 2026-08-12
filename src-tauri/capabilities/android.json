@@ -1,0 +1,28 @@
+{
+  "$schema": "../gen/schemas/android-schema.json",
+  "identifier": "android",
+  "description": "Least-privilege capability for the Android shell",
+  "platforms": ["android"],
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "saf-course:allow-pick-course",
+    "saf-course:allow-restore-courses",
+    "saf-course:allow-scan-course",
+    "saf-course:allow-relink-course",
+    "saf-course:allow-upgrade-course-access",
+    "saf-course:allow-prepare-media",
+    "saf-course:allow-release-media",
+    "saf-course:allow-read-subtitle",
+    "saf-course:allow-load-lesson-note",
+    "saf-course:allow-save-lesson-note",
+    "saf-course:allow-save-lesson-draft",
+    "saf-course:allow-load-course-state",
+    "saf-course:allow-load-course-state-sources",
+    "saf-course:allow-clear-local-course-state",
+    "saf-course:allow-save-course-state-file",
+    "saf-course:allow-pick-dictionary-pack",
+    "saf-course:allow-enter-picture-in-picture",
+    "saf-course:allow-update-android-playback"
+  ]
+}

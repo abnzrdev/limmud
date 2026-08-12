@@ -68,6 +68,7 @@ it("reports only eligible playback as study activity", async () => {
     onStudyActivityChange={onStudyActivityChange}
   />);
   const video = container.querySelector("video") as HTMLVideoElement;
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/video.mp4"));
   Object.defineProperty(video, "paused", { configurable: true, value: false });
   fireEvent.play(video);
   fireEvent.waiting(video);
@@ -75,7 +76,7 @@ it("reports only eligible playback as study activity", async () => {
   fireEvent.seeking(video);
   fireEvent.pause(video);
   fireEvent.ended(video);
-  expect(onStudyActivityChange.mock.calls.map(([active]) => active)).toEqual([true, false, true, false, false, false]);
+  expect(onStudyActivityChange.mock.calls.map(([active]) => active)).toEqual([false, true, false, true, false, false, false]);
 });
 
 it("opens the selected lesson in the system player without changing app state", async () => {
@@ -350,6 +351,7 @@ it("accumulates four fractional watch deltas into one recorded second", async ()
     />,
   );
   const video = container.querySelector("video") as HTMLVideoElement;
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/video.mp4"));
   Object.defineProperty(video, "paused", { configurable: true, value: false });
   setTime(video, 0);
   fireEvent.play(video);
@@ -362,7 +364,7 @@ it("accumulates four fractional watch deltas into one recorded second", async ()
   expect(onWatchedSeconds).toHaveBeenCalledWith(1, "/tmp/course");
 });
 
-it("ignores paused time and seek jumps without double-counting after resume", () => {
+it("ignores paused time and seek jumps without double-counting after resume", async () => {
   tauriRuntime = true;
   courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/video.mp4");
   const onWatchedSeconds = vi.fn();
@@ -378,6 +380,7 @@ it("ignores paused time and seek jumps without double-counting after resume", ()
     />,
   );
   const video = container.querySelector("video") as HTMLVideoElement;
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/video.mp4"));
   Object.defineProperty(video, "paused", { configurable: true, writable: true, value: false });
   setTime(video, 0);
   fireEvent.play(video);
@@ -434,7 +437,7 @@ it("ignores timeupdate events while a seek is still in progress", () => {
   expect(onWatchedSeconds).not.toHaveBeenCalled();
 });
 
-it("requests persistence flushes on pause, ended, and cleanup", () => {
+it("requests persistence flushes on pause, ended, and cleanup", async () => {
   tauriRuntime = true;
   courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/video.mp4");
   const onPlaybackFlush = vi.fn();
@@ -450,6 +453,7 @@ it("requests persistence flushes on pause, ended, and cleanup", () => {
     />,
   );
   const video = container.querySelector("video") as HTMLVideoElement;
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/video.mp4"));
   fireEvent.pause(video);
   Object.defineProperty(video, "duration", { configurable: true, value: 10 });
   fireEvent.ended(video);
@@ -458,7 +462,7 @@ it("requests persistence flushes on pause, ended, and cleanup", () => {
   expect(onPlaybackFlush).toHaveBeenCalledTimes(3);
 });
 
-it("captures the final fractional interval when playback pauses", () => {
+it("captures the final fractional interval when playback pauses", async () => {
   tauriRuntime = true;
   courseMediaUrl.mockResolvedValueOnce("http://127.0.0.1/video.mp4");
   const onWatchedSeconds = vi.fn();
@@ -474,6 +478,7 @@ it("captures the final fractional interval when playback pauses", () => {
     />,
   );
   const video = container.querySelector("video") as HTMLVideoElement;
+  await waitFor(() => expect(video).toHaveAttribute("src", "http://127.0.0.1/video.mp4"));
   Object.defineProperty(video, "paused", { configurable: true, writable: true, value: false });
   setTime(video, 0);
   fireEvent.play(video);

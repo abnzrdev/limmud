@@ -67,3 +67,10 @@ pub fn app_config_file() -> PathBuf {
     )
     .join("config.json")
 }
+
+pub fn app_course_covers_dir() -> PathBuf {
+    app_config_file()
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("course-covers")
+}

@@ -21,6 +21,7 @@ import {
   type DictionaryLayoutState,
   type WorkspaceLayout,
   type StudyActivitySource,
+  type KnownCourse,
 } from "../lib/persistence";
 import { pickSubtitleForVideo } from "../lib/subtitleMatch";
 import {
@@ -46,6 +47,10 @@ import {
   writeCourseState,
   writeEditableTextFile,
   writeNote,
+  chooseCourseCover,
+  installCourseCover,
+  removeCourseCover,
+  toMediaUrl,
 } from "../lib/tauri";
 import type { CourseEntry } from "../types/course";
 import type { LessonResource } from "../types/resource";
@@ -77,8 +82,14 @@ export interface AppModel {
   bookmarkedEntries: CourseEntry[];
   studyStats: ReturnType<typeof withDefaultLessonState>["studyStats"];
   progressPercent: number;
+  knownCourses: DashboardCourse[];
   status: string;
-  openCourse: () => void;
+  openCourse: () => Promise<boolean>;
+  openKnownCourse: (root: string) => Promise<boolean>;
+  locateCourse: (root: string) => Promise<boolean>;
+  changeCourseCover: (root: string) => Promise<void>;
+  clearCourseCover: (root: string) => Promise<void>;
+  forgetCourse: (root: string) => Promise<void>;
   refreshCourse: () => void;
   isRefreshingCourse: boolean;
   openLessonFolder: () => void;
@@ -108,6 +119,18 @@ export interface AppModel {
   openCourseMaterial: (entry: CourseEntry) => void;
   toggleLessonDone: () => void;
   toggleLessonBookmark: () => void;
+}
+
+export interface DashboardCourse extends KnownCourse {
+  available: boolean;
+  coverUrl: string | null;
+  completedLessons: number;
+  totalLessons: number;
+  selectedEntryId: string | null;
+  selectedLessonName: string | null;
+  lessonNames: string[];
+  bookmarkedLessonNames: string[];
+  noteNames: string[];
 }
 
 const starterEntries: CourseEntry[] = [
@@ -155,6 +178,7 @@ export function useAppModel(): AppModel {
   const [timerPresets, setTimerPresets] = useState<number[]>(appDefaults.timerPresets);
   const [workspaceLayout, setWorkspaceLayout] = useState(appDefaults.workspaceLayout);
   const [dictionaryLayout, setDictionaryLayout] = useState(appDefaults.dictionaryLayout);
+  const [knownCourses, setKnownCourses] = useState<DashboardCourse[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<CourseEntry | null>(
     findFirstVideo(starterEntries),
   );
@@ -326,9 +350,12 @@ export function useAppModel(): AppModel {
         setTimerPresets(hydrated.timerPresets);
         setWorkspaceLayout(hydrated.workspaceLayout);
         setDictionaryLayout(hydrated.dictionaryLayout);
-        if (hydrated.lastOpenedCourse) {
-          await loadCourseFromPath(hydrated.lastOpenedCourse, { restoring: true });
-        }
+        const registry = hydrated.knownCourses.length
+          ? hydrated.knownCourses
+          : hydrated.lastOpenedCourse
+            ? [{ root: hydrated.lastOpenedCourse, name: courseName(hydrated.lastOpenedCourse), lastOpenedAt: new Date(0).toISOString(), coverPath: null }]
+            : [];
+        setKnownCourses(await Promise.all(registry.map(loadDashboardCourse)));
       } catch {
         // Browser/dev mode remains usable without native config access.
       } finally {
@@ -349,12 +376,13 @@ export function useAppModel(): AppModel {
       windowBounds: null,
       workspaceLayout,
       dictionaryLayout,
+      knownCourses,
     });
 
     void writeAppConfig(configRecord).catch(() => {
       // Preserve UI responsiveness if app config persistence fails.
     });
-  }, [didHydrateAppConfig, dictionaryLayout, lastOpenedCourse, theme, timerPresets, workspaceLayout]);
+  }, [didHydrateAppConfig, dictionaryLayout, knownCourses, lastOpenedCourse, theme, timerPresets, workspaceLayout]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -364,17 +392,35 @@ export function useAppModel(): AppModel {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
+  useEffect(() => {
+    if (!currentCourseRoot) return;
+    const videos = collectVideoEntries(entries);
+    const visiblePaths = new Set(videos.map((entry) => entry.relativePath));
+    setKnownCourses((current) => current.map((course) => course.root === currentCourseRoot ? {
+      ...course,
+      available: true,
+      completedLessons: completedLessons.filter((path) => visiblePaths.has(path)).length,
+      totalLessons: videos.length,
+      selectedEntryId: selectedEntry?.id ?? null,
+      selectedLessonName: selectedEntry ? courseEntryName(selectedEntry.name) : null,
+      lessonNames: videos.map((entry) => courseEntryName(entry.name)),
+      bookmarkedLessonNames: videos.filter((entry) => bookmarkedLessons.includes(entry.relativePath)).map((entry) => courseEntryName(entry.name)),
+      noteNames: collectEntriesByKind(entries, "note").map((entry) => courseEntryName(entry.name)),
+    } : course));
+  }, [bookmarkedLessons, completedLessons, currentCourseRoot, entries, selectedEntry]);
+
   async function loadCourseFromPath(
     path: string,
     options: { restoring?: boolean } = {},
-  ): Promise<void> {
+  ): Promise<boolean> {
+    const displayName = courseName(path);
     const persistenceWarning = currentCourseRoot && currentCourseRoot !== path
       ? await persistPendingCourseState()
       : null;
     const finishStatus = (message: string) => {
       setStatus(persistenceWarning ? `${message} — ${persistenceWarning}` : message);
     };
-    setStatus(options.restoring ? `Restoring ${path}...` : `Loading ${path}...`);
+    setStatus(options.restoring ? `Restoring ${displayName}...` : `Loading ${displayName}...`);
 
     try {
       const scannedEntries = await scanCourse(path);
@@ -389,6 +435,21 @@ export function useAppModel(): AppModel {
       currentCourseRootRef.current = path;
       setCurrentCourseRoot(path);
       setLastOpenedCourse(path);
+      setKnownCourses((current) => upsertDashboardCourse(current, {
+        root: path,
+        name: courseName(path),
+        lastOpenedAt: new Date().toISOString(),
+        coverPath: current.find((course) => course.root === path)?.coverPath ?? null,
+        coverUrl: current.find((course) => course.root === path)?.coverUrl ?? null,
+        available: true,
+        completedLessons: hydratedState.completedLessons.filter((item) => collectVideoEntries(scannedEntries).some((entry) => entry.relativePath === item)).length,
+        totalLessons: collectVideoEntries(scannedEntries).length,
+        selectedEntryId: restoredSelection?.id ?? null,
+        selectedLessonName: restoredSelection ? courseEntryName(restoredSelection.name) : null,
+        lessonNames: collectVideoEntries(scannedEntries).map((entry) => courseEntryName(entry.name)),
+        bookmarkedLessonNames: collectVideoEntries(scannedEntries).filter((entry) => hydratedState.bookmarkedLessons.includes(entry.relativePath)).map((entry) => courseEntryName(entry.name)),
+        noteNames: collectEntriesByKind(scannedEntries, "note").map((entry) => courseEntryName(entry.name)),
+      }));
       setEntries(scannedEntries);
       setSelectedEntry(restoredSelection);
       setShouldAutoPlaySelectedEntry(false);
@@ -408,27 +469,28 @@ export function useAppModel(): AppModel {
         setResources(await loadResourcesForSelection(restoredSelection, path));
       }
       if (!scannedEntries.length) {
-        finishStatus(`Loaded ${path} (folder is empty)`);
-        return;
+        finishStatus(`Loaded ${displayName} (folder is empty)`);
+        return true;
       }
 
       if (!firstVideo) {
-        finishStatus(`Loaded ${path} (no videos found)`);
-        return;
+        finishStatus(`Loaded ${displayName} (no videos found)`);
+        return true;
       }
 
-      finishStatus(options.restoring ? `Restored ${path}` : `Loaded ${path}`);
+      finishStatus(options.restoring ? `Restored ${displayName}` : `Loaded ${displayName}`);
+      return true;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown course loading error";
       if (options.restoring) {
         currentCourseRootRef.current = null;
         setCurrentCourseRoot(null);
-        setLastOpenedCourse(null);
-        setStatus(`Failed to restore course: ${message}`);
-        return;
+        setStatus(`Could not restore ${displayName}. The folder may have moved or become unavailable.`);
+        return false;
       }
 
-      finishStatus(`Failed to load course: ${message}`);
+      finishStatus(`Could not load ${displayName}. Check that the folder is available.`);
+      setKnownCourses((current) => current.map((course) => course.root === path ? { ...course, available: false } : course));
+      return false;
     }
   }
 
@@ -564,15 +626,54 @@ export function useAppModel(): AppModel {
     bookmarkedEntries,
     studyStats: visibleStudyStats,
     progressPercent,
+    knownCourses,
     status,
     openCourse: async () => {
       const path = await chooseCoursePath();
       if (!path) {
         setStatus("Course loading cancelled");
-        return;
+        return false;
       }
 
-      await loadCourseFromPath(path);
+      return loadCourseFromPath(path);
+    },
+    openKnownCourse: (root) => loadCourseFromPath(root),
+    locateCourse: async (root) => {
+      const replacementRoot = await chooseCoursePath();
+      if (!replacementRoot) return false;
+      const previous = knownCourses.find((course) => course.root === root);
+      if (!await loadCourseFromPath(replacementRoot)) return false;
+      let replacementCover: string | null = null;
+      if (previous?.coverPath) {
+        replacementCover = await installCourseCover(replacementRoot, previous.coverPath).catch(() => null);
+        if (replacementCover) await removeCourseCover(root).catch(() => undefined);
+      }
+      setKnownCourses((current) => current
+        .filter((course) => course.root !== root)
+        .map((course) => course.root === replacementRoot && replacementCover
+          ? { ...course, coverPath: replacementCover, coverUrl: toMediaUrl(replacementCover) }
+          : course));
+      return true;
+    },
+    changeCourseCover: async (root) => {
+      const sourcePath = await chooseCourseCover();
+      if (!sourcePath) return;
+      const storedPath = await installCourseCover(root, sourcePath);
+      setKnownCourses((current) => current.map((course) => course.root === root
+        ? { ...course, coverPath: storedPath, coverUrl: toMediaUrl(storedPath) }
+        : course));
+    },
+    clearCourseCover: async (root) => {
+      await removeCourseCover(root);
+      setKnownCourses((current) => current.map((course) => course.root === root
+        ? { ...course, coverPath: null, coverUrl: null }
+        : course));
+    },
+    forgetCourse: async (root) => {
+      if (knownCourses.find((course) => course.root === root)?.coverPath) {
+        await removeCourseCover(root).catch(() => undefined);
+      }
+      setKnownCourses((current) => current.filter((course) => course.root !== root));
     },
     refreshCourse: async () => {
       if (!currentCourseRoot || isRefreshingCourse) {
@@ -870,6 +971,53 @@ async function loadResourcesForSelection(entry: CourseEntry, courseRoot: string 
   } catch {
     return [];
   }
+}
+
+async function loadDashboardCourse(course: KnownCourse): Promise<DashboardCourse> {
+  try {
+    const [entries, stateRecord] = await Promise.all([
+      scanCourse(course.root),
+      readCourseState(course.root).catch(() => ({})),
+    ]);
+    const videos = collectVideoEntries(entries);
+    const state = deserializeLessonStateRecord(stateRecord);
+    const visiblePaths = new Set(videos.map((entry) => entry.relativePath));
+    return {
+      ...course,
+      available: true,
+      coverUrl: course.coverPath ? toMediaUrl(course.coverPath) : null,
+      completedLessons: state.completedLessons.filter((path) => visiblePaths.has(path)).length,
+      totalLessons: videos.length,
+      selectedEntryId: state.selectedEntryId,
+      selectedLessonName: state.selectedEntryId ? courseEntryName(videos.find((entry) => entry.id === state.selectedEntryId)?.name ?? "") || null : null,
+      lessonNames: videos.map((entry) => courseEntryName(entry.name)),
+      bookmarkedLessonNames: videos.filter((entry) => state.bookmarkedLessons.includes(entry.relativePath)).map((entry) => courseEntryName(entry.name)),
+      noteNames: collectEntriesByKind(entries, "note").map((entry) => courseEntryName(entry.name)),
+    };
+  } catch {
+    return { ...course, available: false, coverUrl: course.coverPath ? toMediaUrl(course.coverPath) : null, completedLessons: 0, totalLessons: 0, selectedEntryId: null, selectedLessonName: null, lessonNames: [], bookmarkedLessonNames: [], noteNames: [] };
+  }
+}
+
+function upsertDashboardCourse(courses: DashboardCourse[], next: DashboardCourse): DashboardCourse[] {
+  return [next, ...courses.filter((course) => course.root !== next.root)]
+    .sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt));
+}
+
+function courseName(root: string): string {
+  const normalized = root.replace(/[\\/]+$/, "");
+  return normalized.split(/[\\/]/).pop() || "Course";
+}
+
+function courseEntryName(name: string): string {
+  return name.replace(/\.[^.]+$/, "");
+}
+
+function collectEntriesByKind(entries: CourseEntry[], kind: CourseEntry["kind"]): CourseEntry[] {
+  return entries.flatMap((entry) => [
+    ...(entry.kind === kind ? [entry] : []),
+    ...(entry.children ? collectEntriesByKind(entry.children, kind) : []),
+  ]);
 }
 
 function fileNameOf(path: string): string {

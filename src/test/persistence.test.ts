@@ -13,6 +13,17 @@ import {
 } from "../lib/persistence";
 
 describe("withDefaultGlobalConfig", () => {
+  it("restores only valid remembered course registry entries", () => {
+    expect(withDefaultGlobalConfig({
+      knownCourses: [
+        { root: "/synthetic/course-a", name: "Course A", lastOpenedAt: "2026-08-10T10:00:00.000Z", coverPath: null },
+        { root: "", name: "Broken", lastOpenedAt: "nope" },
+      ],
+    }).knownCourses).toEqual([
+      { root: "/synthetic/course-a", name: "Course A", lastOpenedAt: "2026-08-10T10:00:00.000Z", coverPath: null },
+    ]);
+  });
+
   it("fills missing timer presets and theme", () => {
     expect(withDefaultGlobalConfig({})).toMatchObject({
       theme: "dark",
@@ -78,6 +89,24 @@ describe("todo helpers", () => {
 });
 
 describe("lesson state record helpers", () => {
+  it("round trips remembered courses through the global config record", () => {
+    const knownCourses = [{
+      root: "/synthetic/course-a",
+      name: "Course A",
+      lastOpenedAt: "2026-08-10T10:00:00.000Z",
+      coverPath: "/synthetic/app-data/covers/a.webp",
+    }];
+    const record = serializeGlobalConfigRecord({
+      lastOpenedCourse: knownCourses[0].root,
+      knownCourses,
+      theme: "dark",
+      timerPresets: [25],
+      windowBounds: null,
+    });
+
+    expect(deserializeGlobalConfigRecord(record).knownCourses).toEqual(knownCourses);
+  });
+
   it("serializes lesson state into a string record", () => {
     const todo = createTodoItem("Review queue examples");
 

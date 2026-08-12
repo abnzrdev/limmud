@@ -4,8 +4,6 @@ import {
   MediaPlayer,
   MediaProvider,
   PIPButton,
-  PictureInPictureExitIcon,
-  PictureInPictureIcon,
   Track,
   type MediaPlayerInstance,
   type MediaProviderAdapter,
@@ -16,6 +14,10 @@ import {
 } from "@vidstack/react/player/layouts/default";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
+import {
+  PictureInPicture,
+  PictureInPicture2,
+} from "lucide-react";
 import {
   useEffect,
   useRef,
@@ -204,6 +206,7 @@ export function VidstackVideo({
             mediaRef.current = element;
           }}
           className={className}
+          title={title}
           src={src}
           preload={preload}
           playsInline={playsInline}
@@ -330,8 +333,8 @@ export function VidstackVideo({
                 aria-label={`${pictureInPicture ? "Exit" : "Enter"} Picture-in-Picture`}
               >
                 {pictureInPicture
-                  ? <PictureInPictureExitIcon className="vds-icon" />
-                  : <PictureInPictureIcon className="vds-icon" />}
+                  ? <PictureInPicture2 className="vds-icon" />
+                  : <PictureInPicture className="vds-icon" />}
               </PIPButton>
             ) : null,
           }}

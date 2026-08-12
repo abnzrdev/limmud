@@ -19,6 +19,7 @@ import {
   Sun,
   SquareTerminal,
   Flame,
+  House,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
@@ -46,13 +47,14 @@ import { LessonWorkspace } from "../workspace/LessonWorkspace";
 
 interface AppShellProps {
   model: AppModel;
+  onDashboard?: () => void;
 }
 
 type RightWorkspaceMode = "terminal-tools" | "dictionary";
 
 const toolKeys: ToolPanelKey[] = ["stats", "resources", "bookmarks", "timer", "todos"];
 
-export function AppShell({ model }: AppShellProps) {
+export function AppShell({ model, onDashboard }: AppShellProps) {
   const [isZenMode, setIsZenMode] = useState(false);
   const [isTerminalMaximized, setIsTerminalMaximized] = useState(false);
   const [isCourseCollapsed, setIsCourseCollapsed] = useState(model.workspaceLayout.courseCollapsed);
@@ -342,6 +344,7 @@ export function AppShell({ model }: AppShellProps) {
               ) : null}
             </div>
             <div className="app-toolbar-actions">
+              {onDashboard ? <button type="button" className="button-secondary" aria-label="Dashboard Home" onClick={onDashboard}><House aria-hidden="true" /> Home</button> : null}
               <button ref={dictionaryButtonRef} type="button" className="button-secondary" aria-label="Dictionary" title="Dictionary · Ctrl+Shift+D" onClick={() => setRightWorkspaceMode("dictionary")}>
                 <BookOpen aria-hidden="true" /> Dictionary
               </button>

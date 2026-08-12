@@ -249,11 +249,13 @@ export function VideoPlayer({
           );
         }}
         onPlay={(event) => {
+          if (!activeSource) return;
           recordMediaEvent("play", event.currentTarget, activeSource?.lessonId);
           lastWatchTimeRef.current = event.currentTarget.currentTime;
           onStudyActivityChange?.(!event.currentTarget.seeking);
         }}
         onPause={(event) => {
+          if (!activeSource) return;
           recordMediaEvent("pause", event.currentTarget, activeSource?.lessonId);
           onStudyActivityChange?.(false);
           captureWatchedTime(event.currentTarget.currentTime);
@@ -261,24 +263,29 @@ export function VideoPlayer({
           lastWatchTimeRef.current = null;
         }}
         onSeeking={(event) => {
+          if (!activeSource) return;
           recordMediaEvent("seeking", event.currentTarget, activeSource?.lessonId);
           onStudyActivityChange?.(false);
           lastWatchTimeRef.current = null;
         }}
         onSeeked={(event) => {
+          if (!activeSource) return;
           recordMediaEvent("seeked", event.currentTarget, activeSource?.lessonId);
           lastWatchTimeRef.current = event.currentTarget.currentTime;
           onStudyActivityChange?.(!event.currentTarget.paused && !event.currentTarget.ended);
         }}
         onWaiting={(event) => {
+          if (!activeSource) return;
           recordMediaEvent("waiting", event.currentTarget, activeSource?.lessonId);
           onStudyActivityChange?.(false);
         }}
         onStalled={(event) => {
+          if (!activeSource) return;
           recordMediaEvent("stalled", event.currentTarget, activeSource?.lessonId);
           onStudyActivityChange?.(false);
         }}
         onPlaying={(event) => {
+          if (!activeSource) return;
           setPlaybackError(null);
           recordMediaEvent("playing", event.currentTarget, activeSource?.lessonId);
           onStudyActivityChange?.(

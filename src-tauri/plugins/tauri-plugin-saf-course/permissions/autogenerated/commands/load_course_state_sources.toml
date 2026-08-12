@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-load-course-state-sources"
+description = "Enables the load_course_state_sources command without any pre-configured scope."
+commands.allow = ["load_course_state_sources"]
+
+[[permission]]
+identifier = "deny-load-course-state-sources"
+description = "Denies the load_course_state_sources command without any pre-configured scope."
+commands.deny = ["load_course_state_sources"]

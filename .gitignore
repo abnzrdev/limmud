@@ -3,6 +3,10 @@ node_modules/
 dist/
 dist-ssr/
 src-tauri/target/
+src-tauri/plugins/*/target/
+src-tauri/plugins/*/Cargo.lock
+src-tauri/plugins/*/android/.tauri/
+src-tauri/plugins/*/android/build/
 
 # Logs and diagnostics
 *.log

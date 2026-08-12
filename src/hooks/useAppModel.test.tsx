@@ -21,6 +21,9 @@ const {
   writeAppConfig,
   writeCourseState,
   writeNote,
+  chooseCourseCover,
+  installCourseCover,
+  removeCourseCover,
 } = vi.hoisted(() => ({
   chooseCoursePath: vi.fn(),
   chooseResourcePaths: vi.fn(),
@@ -38,11 +41,15 @@ const {
   writeAppConfig: vi.fn(),
   writeCourseState: vi.fn(),
   writeNote: vi.fn(),
+  chooseCourseCover: vi.fn(),
+  installCourseCover: vi.fn(),
+  removeCourseCover: vi.fn(),
 }));
 
 vi.mock("../lib/tauri", () => ({
   chooseCoursePath,
   chooseResourcePaths,
+  chooseCourseCover,
   courseMediaUrl: vi.fn(),
   importLessonResources,
   isTauriRuntime: () => true,
@@ -57,6 +64,8 @@ vi.mock("../lib/tauri", () => ({
   removeRecoveryDraft,
   scanCourse,
   toMediaUrl: (value: string) => value,
+  installCourseCover,
+  removeCourseCover,
   writeAppConfig,
   writeRecoveryDraft,
   writeCourseState,
@@ -116,6 +125,73 @@ describe("useAppModel auto advance", () => {
     ));
   });
 
+  it("keeps a remembered missing course visible as unavailable", async () => {
+    readAppConfig.mockResolvedValue({
+      knownCourses: JSON.stringify([{ root: "/synthetic/missing", name: "Unavailable Course", lastOpenedAt: "2026-08-10T10:00:00.000Z", coverPath: null }]),
+    });
+    scanCourse.mockRejectedValue(new Error("not found"));
+
+    const { result } = renderHook(() => useAppModel());
+    await waitFor(() => expect(result.current.knownCourses).toHaveLength(1));
+
+    expect(result.current.knownCourses[0]).toMatchObject({ name: "Unavailable Course", available: false });
+    expect(result.current.currentCourseRoot).toBeNull();
+  });
+
+  it("relocates a missing course without touching the old course folder", async () => {
+    readAppConfig.mockResolvedValue({
+      knownCourses: JSON.stringify([{ root: "/synthetic/missing", name: "Unavailable Course", lastOpenedAt: "2026-08-10T10:00:00.000Z", coverPath: null }]),
+    });
+    scanCourse.mockRejectedValueOnce(new Error("not found")).mockResolvedValue(courseEntries());
+    chooseCoursePath.mockResolvedValue("/synthetic/relocated");
+    const { result } = renderHook(() => useAppModel());
+    await waitFor(() => expect(result.current.knownCourses[0]?.available).toBe(false));
+
+    await act(async () => { expect(await result.current.locateCourse("/synthetic/missing")).toBe(true); });
+
+    expect(result.current.currentCourseRoot).toBe("/synthetic/relocated");
+    expect(result.current.knownCourses.map((course) => course.root)).toEqual(["/synthetic/relocated"]);
+    expect(removeCourseCover).not.toHaveBeenCalled();
+  });
+
+  it("opens a remembered course through the existing course loader", async () => {
+    readAppConfig.mockResolvedValue({
+      knownCourses: JSON.stringify([{ root: "/synthetic/course-a", name: "Course A", lastOpenedAt: "2026-08-10T10:00:00.000Z", coverPath: null }]),
+    });
+    scanCourse.mockResolvedValue(courseEntries());
+    readCourseState.mockResolvedValue({
+      selectedEntryId: "week-1/second.mp4",
+      videoProgress: '{"Week 1/second.mp4":73}',
+    });
+    const { result } = renderHook(() => useAppModel());
+    await waitFor(() => expect(result.current.knownCourses[0]?.available).toBe(true));
+
+    await act(async () => { expect(await result.current.openKnownCourse("/synthetic/course-a")).toBe(true); });
+    expect(result.current.currentCourseRoot).toBe("/synthetic/course-a");
+    expect(result.current.selectedEntry?.id).toBe("week-1/second.mp4");
+    expect(result.current.resumeTime).toBe(73);
+  });
+
+  it("persists changed and removed local course covers", async () => {
+    readAppConfig.mockResolvedValue({
+      knownCourses: JSON.stringify([{ root: "/synthetic/course-a", name: "Course A", lastOpenedAt: "2026-08-10T10:00:00.000Z", coverPath: null }]),
+    });
+    scanCourse.mockResolvedValue(courseEntries());
+    chooseCourseCover.mockResolvedValue("/synthetic/source.webp");
+    installCourseCover.mockResolvedValue("/synthetic/app-data/course.webp");
+    removeCourseCover.mockResolvedValue(undefined);
+    const { result } = renderHook(() => useAppModel());
+    await waitFor(() => expect(result.current.knownCourses[0]?.available).toBe(true));
+
+    await act(async () => { await result.current.changeCourseCover("/synthetic/course-a"); });
+    expect(result.current.knownCourses[0].coverPath).toBe("/synthetic/app-data/course.webp");
+    await waitFor(() => expect(writeAppConfig).toHaveBeenLastCalledWith(expect.objectContaining({ knownCourses: expect.stringContaining("course.webp") })));
+
+    await act(async () => { await result.current.clearCourseCover("/synthetic/course-a"); });
+    expect(removeCourseCover).toHaveBeenCalledWith("/synthetic/course-a");
+    expect(result.current.knownCourses[0].coverPath).toBeNull();
+  });
+
   it("selects the next lesson and reloads notes when the current video ends", async () => {
     chooseCoursePath.mockResolvedValue("/tmp/course");
     scanCourse.mockResolvedValue(courseEntries());
@@ -142,7 +218,7 @@ describe("useAppModel auto advance", () => {
     expect(result.current.shouldAutoPlaySelectedEntry).toBe(true);
     expect(result.current.completedLessons).toEqual(["Week 1/intro.mp4"]);
     expect(result.current.progressPercent).toBe(50);
-    expect(result.current.status).toBe("Loaded /tmp/course");
+    expect(result.current.status).toBe("Loaded course");
   });
 
   it("does not duplicate completion when an already done lesson ends", async () => {
@@ -482,7 +558,7 @@ describe("useAppModel auto advance", () => {
     await act(async () => result.current.openCourse());
 
     expect(result.current.status).toContain("Progress save failed: disk full");
-    expect(result.current.status).toContain("Loaded /tmp/next");
+    expect(result.current.status).toContain("Loaded next");
   });
 
   it("ignores a late watch update from the previous course", async () => {
@@ -537,7 +613,7 @@ describe("useAppModel auto advance", () => {
     });
 
     expect(result.current.selectedEntry?.id).toBe("week-2/nested/lesson.mp4");
-    expect(result.current.status).toBe("Loaded /tmp/course");
+    expect(result.current.status).toBe("Loaded course");
 
     await act(async () => {
       await result.current.selectEntry(result.current.entries[2]);

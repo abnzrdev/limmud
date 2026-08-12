@@ -51,6 +51,14 @@ export interface GlobalConfigRecord {
   timerPresets: string;
   workspaceLayout?: string;
   dictionaryLayout?: string;
+  knownCourses?: string;
+}
+
+export interface KnownCourse {
+  root: string;
+  name: string;
+  lastOpenedAt: string;
+  coverPath: string | null;
 }
 
 export type ToolPanelKey = "stats" | "resources" | "bookmarks" | "timer" | "todos";
@@ -86,6 +94,24 @@ export interface GlobalConfig {
   windowBounds: unknown;
   workspaceLayout: WorkspaceLayout;
   dictionaryLayout: DictionaryLayoutState;
+  knownCourses: KnownCourse[];
+}
+
+function sanitizeKnownCourses(value: unknown): KnownCourse[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const source = item as Record<string, unknown>;
+    if (typeof source.root !== "string" || !source.root.trim() ||
+        typeof source.name !== "string" || !source.name.trim() ||
+        typeof source.lastOpenedAt !== "string" || Number.isNaN(Date.parse(source.lastOpenedAt))) return [];
+    return [{
+      root: source.root,
+      name: source.name,
+      lastOpenedAt: source.lastOpenedAt,
+      coverPath: typeof source.coverPath === "string" && source.coverPath ? source.coverPath : null,
+    }];
+  });
 }
 
 const toolPanelKeys: ToolPanelKey[] = ["stats", "resources", "bookmarks", "timer", "todos"];
@@ -146,6 +172,7 @@ export function withDefaultGlobalConfig(value: Record<string, unknown>): GlobalC
     windowBounds: value.windowBounds ?? null,
     workspaceLayout: sanitizeWorkspaceLayout(value.workspaceLayout),
     dictionaryLayout: sanitizeDictionaryLayout(value.dictionaryLayout),
+    knownCourses: sanitizeKnownCourses(value.knownCourses),
   };
 }
 
@@ -367,6 +394,7 @@ export function serializeGlobalConfigRecord(value: {
   windowBounds: unknown;
   workspaceLayout?: WorkspaceLayout;
   dictionaryLayout?: DictionaryLayoutState;
+  knownCourses?: KnownCourse[];
 }): GlobalConfigRecord {
   return {
     lastOpenedCourse: value.lastOpenedCourse ?? undefined,
@@ -374,6 +402,7 @@ export function serializeGlobalConfigRecord(value: {
     timerPresets: JSON.stringify(value.timerPresets),
     workspaceLayout: JSON.stringify(sanitizeWorkspaceLayout(value.workspaceLayout)),
     dictionaryLayout: JSON.stringify(sanitizeDictionaryLayout(value.dictionaryLayout)),
+    knownCourses: JSON.stringify(sanitizeKnownCourses(value.knownCourses)),
   };
 }
 
@@ -383,6 +412,7 @@ export function deserializeGlobalConfigRecord(
   let timerPresets: number[] = [25, 50, 90];
   let workspaceLayout: unknown;
   let dictionaryLayout: unknown;
+  let knownCourses: unknown;
   try {
     const parsed = JSON.parse(value.timerPresets ?? "[25,50,90]");
     timerPresets = sanitizeTimerPresets(parsed);
@@ -399,6 +429,11 @@ export function deserializeGlobalConfigRecord(
   } catch {
     dictionaryLayout = null;
   }
+  try {
+    knownCourses = JSON.parse(value.knownCourses ?? "[]");
+  } catch {
+    knownCourses = [];
+  }
 
   return withDefaultGlobalConfig({
     lastOpenedCourse: value.lastOpenedCourse ?? null,
@@ -406,5 +441,6 @@ export function deserializeGlobalConfigRecord(
     timerPresets,
     workspaceLayout,
     dictionaryLayout,
+    knownCourses,
   });
 }

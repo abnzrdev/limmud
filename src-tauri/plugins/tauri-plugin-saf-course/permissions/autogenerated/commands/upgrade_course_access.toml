@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-upgrade-course-access"
+description = "Enables the upgrade_course_access command without any pre-configured scope."
+commands.allow = ["upgrade_course_access"]
+
+[[permission]]
+identifier = "deny-upgrade-course-access"
+description = "Denies the upgrade_course_access command without any pre-configured scope."
+commands.deny = ["upgrade_course_access"]

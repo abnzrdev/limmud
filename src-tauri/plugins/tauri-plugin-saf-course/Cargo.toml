@@ -1,0 +1,18 @@
+[package]
+name = "tauri-plugin-saf-course"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77.2"
+links = "tauri-plugin-saf-course"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+tauri = { version = "2.11.3", default-features = false }
+
+[build-dependencies]
+tauri-plugin = { version = "2.6.3", features = ["build"] }

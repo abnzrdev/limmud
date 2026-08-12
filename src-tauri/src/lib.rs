@@ -1,18 +1,48 @@
+#[cfg(not(mobile))]
 pub mod commands;
+#[cfg(not(mobile))]
+pub mod course_covers;
 pub mod dictionary;
+#[cfg(not(mobile))]
 pub mod errors;
+#[cfg(not(mobile))]
 pub mod fs_paths;
+#[cfg(not(mobile))]
 pub mod media_server;
+#[cfg(mobile)]
+pub mod mobile_dictionary;
+#[cfg(not(mobile))]
 pub mod models;
+#[cfg(not(mobile))]
 pub mod persistence;
+#[cfg(not(mobile))]
 pub mod scanner;
+#[cfg(not(mobile))]
 pub mod terminal;
 
-#[cfg(debug_assertions)]
+#[cfg(all(debug_assertions, not(mobile)))]
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(mobile)]
+    tauri::Builder::default()
+        .plugin(tauri_plugin_saf_course::init())
+        .invoke_handler(tauri::generate_handler![
+            mobile_dictionary::mobile_dictionary_status,
+            mobile_dictionary::mobile_dictionary_install_pending,
+            mobile_dictionary::mobile_dictionary_search,
+            mobile_dictionary::mobile_dictionary_get_entry,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running Limmud mobile");
+
+    #[cfg(not(mobile))]
+    run_desktop();
+}
+
+#[cfg(not(mobile))]
+fn run_desktop() {
     let terminal_state = terminal::TerminalState::default();
     let cleanup_state = terminal_state.clone();
     tauri::Builder::default()
@@ -42,6 +72,8 @@ pub fn run() {
             commands::attachments::read_lesson_resources,
             commands::app_config::read_app_config,
             commands::app_config::write_app_config,
+            commands::app_config::install_course_cover,
+            commands::app_config::remove_course_cover,
             commands::course::scan_course,
             commands::course::read_course_state,
             commands::course::write_course_state,

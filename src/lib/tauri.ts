@@ -121,6 +121,25 @@ export async function chooseCoursePath(): Promise<string | null> {
   return value?.trim() ? value.trim() : null;
 }
 
+export async function chooseCourseCover(): Promise<string | null> {
+  if (!isTauriRuntime()) return null;
+  const selected = await open({
+    directory: false,
+    multiple: false,
+    title: "Choose Course Cover",
+    filters: [{ name: "Course cover", extensions: ["png", "jpg", "jpeg", "webp"] }],
+  });
+  return typeof selected === "string" ? selected : null;
+}
+
+export function installCourseCover(courseRoot: string, sourcePath: string): Promise<string> {
+  return invoke<string>("install_course_cover", { courseRoot, sourcePath });
+}
+
+export function removeCourseCover(courseRoot: string): Promise<void> {
+  return invoke("remove_course_cover", { courseRoot });
+}
+
 export async function chooseResourcePaths(): Promise<string[]> {
   if (isTauriRuntime()) {
     const selected = await open({

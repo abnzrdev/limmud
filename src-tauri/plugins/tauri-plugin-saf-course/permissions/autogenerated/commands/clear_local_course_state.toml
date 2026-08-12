@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-clear-local-course-state"
+description = "Enables the clear_local_course_state command without any pre-configured scope."
+commands.allow = ["clear_local_course_state"]
+
+[[permission]]
+identifier = "deny-clear-local-course-state"
+description = "Denies the clear_local_course_state command without any pre-configured scope."
+commands.deny = ["clear_local_course_state"]

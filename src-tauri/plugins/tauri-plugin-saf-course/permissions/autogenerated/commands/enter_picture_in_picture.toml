@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-enter-picture-in-picture"
+description = "Enables the enter_picture_in_picture command without any pre-configured scope."
+commands.allow = ["enter_picture_in_picture"]
+
+[[permission]]
+identifier = "deny-enter-picture-in-picture"
+description = "Denies the enter_picture_in_picture command without any pre-configured scope."
+commands.deny = ["enter_picture_in_picture"]

@@ -1,10 +1,10 @@
 # Limmud
 
-**A focused, local-first desktop workspace for studying offline course material.**
+**A focused, local-first desktop and Android workspace for studying offline course material.**
 
 Online course platforms are useful for distribution, but their feeds, recommendations, notifications, and browser distractions can make focused study harder. Limmud brings downloaded course material into one desktop workspace so learners can watch lessons, take notes, track progress, and use study tools without sending their course data to a cloud service.
 
-> Project status: active, early-stage development (`0.1.0`). The core workflow works, but packaged releases and platform-specific installation guides are not available yet.
+> Project status: active, early-stage development (`0.1.0`). Desktop and Android development builds support the core workflow; signed releases are not available yet.
 
 ## Features
 
@@ -16,6 +16,7 @@ Online course platforms are useful for distribution, but their feeds, recommenda
 - Search an optional offline dictionary and save course vocabulary locally.
 - Resize and persist the course, learning, terminal, tools, and dictionary layouts.
 - Switch between light, dark, and distraction-reduced Zen modes.
+- On Android, open user-selected course trees through SAF and use a responsive phone/tablet workspace without broad storage access.
 
 ## Screenshots
 
@@ -88,6 +89,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
 The offline dictionary pack builder has its own documentation in [`docs/dictionary-data.md`](docs/dictionary-data.md).
+Android architecture, development builds, data behavior, and release limitations are documented in [`docs/android.md`](docs/android.md).
 
 ## Data and privacy
 
