@@ -107,7 +107,12 @@ export function FocusTimer({
       </div>
       <div className="preset-row">
         {timerPresets.map((minutes) => (
-          <button key={minutes} type="button" onClick={() => onPickPreset(minutes)}>
+          <button
+            key={minutes}
+            type="button"
+            className={timerPreset === minutes && timerMode === "focus" ? "is-active" : ""}
+            onClick={() => onPickPreset(minutes)}
+          >
             {minutes}m
           </button>
         ))}

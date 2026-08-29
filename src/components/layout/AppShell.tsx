@@ -565,6 +565,20 @@ export function AppShell({ model, onDashboard }: AppShellProps) {
                     </div>
                     <div className="tools-scroll">
                       <CollapsiblePanel
+                        title={<><Clock3 aria-hidden="true" />Timer</>}
+                        summary={isZenMode ? "" : `${String(model.timerPreset).padStart(2, "0")}:00`}
+                        open={openPanels.timer}
+                        onToggle={() => openTool("timer")}
+                      >
+                        <FocusTimer
+                          timerMode={model.timerMode}
+                          timerPreset={model.timerPreset}
+                          timerPresets={model.timerPresets}
+                          onPickPreset={model.pickTimerPreset}
+                          onToggleMode={model.toggleTimerMode}
+                        />
+                      </CollapsiblePanel>
+                      <CollapsiblePanel
                         title={<><BarChart3 aria-hidden="true" />Stats</>}
                         summary={`Today ${formatStudyDuration(model.studyStats.todaySeconds)} · Streak ${model.studyStats.streakDays}d`}
                         open={openPanels.stats}
@@ -608,20 +622,6 @@ export function AppShell({ model, onDashboard }: AppShellProps) {
                             ) : <li>No bookmarks yet</li>}
                           </ul>
                         </section>
-                      </CollapsiblePanel>
-                      <CollapsiblePanel
-                        title={<><Clock3 aria-hidden="true" />Timer</>}
-                        summary={isZenMode ? "" : `${String(model.timerPreset).padStart(2, "0")}:00`}
-                        open={openPanels.timer}
-                        onToggle={() => openTool("timer")}
-                      >
-                        <FocusTimer
-                          timerMode={model.timerMode}
-                          timerPreset={model.timerPreset}
-                          timerPresets={model.timerPresets}
-                          onPickPreset={model.pickTimerPreset}
-                          onToggleMode={model.toggleTimerMode}
-                        />
                       </CollapsiblePanel>
                       <CollapsiblePanel
                         title={<><ListTodo aria-hidden="true" />Todos</>}
