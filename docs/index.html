@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Limmud is a local-first offline study workspace for video lessons, Markdown notes, progress, an embedded terminal and an optional dictionary.">
+<meta name="theme-color" content="#f4f7fc">
+<meta property="og:title" content="Limmud — Your courses. Your space.">
+<meta property="og:description" content="Limmud is a local-first offline study workspace for video lessons, Markdown notes, progress, an embedded terminal and an optional dictionary.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://abnzrdev.github.io/limmud/">
+<title>Limmud — Your courses. Your space.</title>
+<style>
+:root{--ink:#1c2c30;--muted:#647370;--line:#dae5df;--cream:#f7f9f5;--accent:#3c8f72;--surface:white;--shadow:0 24px 72px rgba(20,40,35,.09);font-synthesis:none}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--cream);color:var(--ink);line-height:1.55}
+a{color:inherit;text-decoration:none}
+a:focus-visible{outline:3px solid var(--accent);outline-offset:5px;border-radius:4px}
+.container{width:min(1130px,calc(100% - 48px));margin:auto}
+.site-nav{height:86px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:11px;font-size:22px;font-weight:790;letter-spacing:-.06em}
+.mark{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:var(--accent);color:#fff;font-size:20px}
+.nav-links{display:flex;align-items:center;gap:30px;color:var(--muted);font-size:14px;font-weight:630}
+.nav-links a:hover,.subtle-link:hover{text-decoration:underline;text-underline-offset:4px}
+.nav-pill{padding:10px 17px;border:1px solid var(--line);border-radius:99px;color:var(--ink)}
+.hero{display:grid;grid-template-columns:1.03fr .97fr;align-items:center;gap:55px;padding:70px 0 80px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:760;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.eyebrow:before{content:"";height:8px;width:8px;border-radius:50%;background:var(--accent)}
+h1,h2,h3,p{margin-top:0}
+h1{font-size:clamp(49px,6.2vw,77px);line-height:1.02;letter-spacing:-.073em;margin:24px 0 25px;font-weight:790}
+.lead{font-size:18px;color:var(--muted);line-height:1.75;max-width:535px}
+.ctas{display:flex;gap:13px;flex-wrap:wrap;margin-top:30px}
+.button{display:inline-flex;justify-content:center;align-items:center;gap:11px;padding:13px 21px;border-radius:11px;font-size:14px;font-weight:730;transition:transform .2s,box-shadow .2s}
+.button:hover{transform:translateY(-2px)}
+.button-primary{background:var(--accent);color:#fff;box-shadow:0 10px 26px color-mix(in srgb,var(--accent),transparent 76%)}
+.button-secondary{background:transparent;border:1px solid var(--line)}
+.hero-note{font-size:12px;color:var(--muted);margin:18px 0 0}
+.showcase{position:relative;min-width:0}
+.preview{border:1px solid var(--line);box-shadow:var(--shadow);background:var(--surface);border-radius:22px;overflow:hidden}
+.preview-label{color:var(--muted);text-align:center;font-size:11px;margin-top:13px}
+.section{padding:82px 0;border-top:1px solid var(--line)}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:35px;margin-bottom:33px}
+.section h2{font-size:clamp(29px,3.8vw,42px);line-height:1.12;letter-spacing:-.055em;font-weight:760;margin:14px 0 0;max-width:700px}
+.section-subtitle{max-width:400px;color:var(--muted);font-size:15px;line-height:1.75}
+.features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.feature{background:var(--surface);padding:27px;border:1px solid var(--line);border-radius:17px;min-height:180px}
+.feature .number{font-size:12px;letter-spacing:.11em;font-weight:780;color:var(--accent)}
+.feature h3{font-size:18px;letter-spacing:-.035em;margin:25px 0 9px}
+.feature p{font-size:14px;line-height:1.75;color:var(--muted);margin:0}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;counter-reset:step}
+.step{border-left:1px solid var(--line);padding-left:22px}
+.step:before{counter-increment:step;content:"0" counter(step);display:block;color:var(--accent);font-size:15px;font-weight:770;margin-bottom:16px}
+.step h3{margin-bottom:9px;font-size:17px;letter-spacing:-.035em}
+.step p{color:var(--muted);font-size:14px;line-height:1.7}
+.detail{background:var(--surface);border-radius:21px;border:1px solid var(--line);padding:32px;display:grid;grid-template-columns:1.2fr .8fr;gap:35px}
+.detail h3{letter-spacing:-.04em;font-size:23px;margin:12px 0}
+.detail p{color:var(--muted);font-size:14px;line-height:1.8}
+.stack{display:flex;flex-wrap:wrap;gap:8px;align-content:start;justify-content:start}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:7px 13px;color:var(--ink);font-size:12px;font-weight:620;background:var(--cream)}
+.note{color:var(--muted);font-size:12px!important}
+.cta-band{margin:60px 0;background:var(--ink);color:white;padding:44px;border-radius:22px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.cta-band h2{font-size:30px;letter-spacing:-.05em;margin:8px 0}
+.cta-band p{color:#d3dbd7;font-size:14px;margin:0}
+.cta-band .button{background:#fff;color:#1b302b;white-space:nowrap}
+.footer{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:28px 0 46px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.footer a:hover{text-decoration:underline}
+@media(max-width:850px){.hero{grid-template-columns:1fr;gap:36px;padding:52px 0}.hero .showcase{max-width:680px;width:100%;margin:auto}.section-head{align-items:start;flex-direction:column;gap:7px}.features{grid-template-columns:repeat(2,minmax(0,1fr))}.detail{grid-template-columns:1fr}.steps{grid-template-columns:1fr}.step{padding-bottom:14px}}
+@media(max-width:570px){.container{width:min(100% - 34px,1130px)}.site-nav{height:72px}.nav-links{gap:13px}.nav-links a:not(.nav-pill){display:none}.nav-pill{padding:8px 13px}h1{font-size:53px}.lead{font-size:16px}.features{grid-template-columns:1fr}.section{padding:64px 0}.cta-band{flex-direction:column;align-items:start;padding:28px}.footer{flex-direction:column;align-items:start}.button{padding:12px 16px}}
+
+:root{--ink:#172742;--muted:#61718b;--line:#dbe3ee;--cream:#f4f7fc;--accent:#5264c8;--surface:#fff;}
+.desktop-preview{min-height:464px;background:#eff2fb;color:#1c2a43}
+.desktop-title{height:40px;background:#fafbff;display:flex;align-items:center;padding:0 15px;border-bottom:1px solid #dbe2ec;gap:6px}.window-dot{width:8px;height:8px;border-radius:50%;background:#cad4e0}.window-dot:first-child{background:#edb3b4}.window-dot:nth-child(2){background:#eccf8d}.window-title{font-size:11px;color:#728098;margin:auto}
+.desktop-body{display:grid;grid-template-columns:35% 65%;min-height:399px}
+.coursebar{background:#f7f9fe;padding:25px 13px;border-right:1px solid #e3e8f2}
+.panel-overline{font-size:9px;letter-spacing:.12em;font-weight:790;color:#9da9bb;margin-bottom:13px}
+.course-name{font-size:12px;font-weight:780;margin-bottom:16px;display:flex;gap:7px;align-items:center}.course-ico{background:#e0e6fc;color:#4f5fc4;padding:6px;border-radius:7px}.course-item{font-size:10px;color:#67768d;padding:10px 7px;margin-bottom:4px;border-radius:7px}.course-item.active{background:#e9edfd;color:#465cbb;font-weight:750}.course-divider{height:1px;background:#e5eaf3;margin:20px 2px}
+.workspace{min-width:0;padding:22px;background:#fff}.video-surface{height:166px;position:relative;background:linear-gradient(135deg,#364767,#101e35);border-radius:10px;display:grid;place-items:center}.video-play{border-radius:50%;background:#ffffff32;color:#fff;width:44px;height:44px;display:grid;place-items:center;font-size:15px}.video-footer{position:absolute;bottom:10px;left:14px;right:14px;display:flex;justify-content:space-between;color:#f5f7ff;font-size:9px}
+.lesson-name{font-size:13px;font-weight:770;margin-top:16px;letter-spacing:-.02em}.lesson-caption{font-size:10px;color:#91a1b5;margin-top:2px}.note-box{background:#f7f9fd;border:1px solid #edf0f7;padding:13px;border-radius:9px;margin-top:17px}.note-title{font-size:9px;font-weight:780;letter-spacing:.11em;color:#7185a0;display:flex;justify-content:space-between}.note-title span{color:#638c7f;letter-spacing:0;text-transform:none}.note-box p{font-size:10px;color:#5e6f86;margin:9px 0 0}
+.desktop-status{display:flex;justify-content:space-between;gap:9px;background:#eff2fb;color:#61809c;padding:11px 16px;font-size:10px}.desktop-status span{color:#8e9eb2}</style>
+</head>
+<body>
+<div class="container">
+<nav class="site-nav" aria-label="Main navigation">
+  <a href="#top" class="brand" aria-label="Limmud home"><span class="mark" aria-hidden="true">▦</span>Limmud</a>
+  <div class="nav-links"><a href="#features">Features</a><a href="#how-it-works">How it works</a><a class="nav-pill" href="https://github.com/abnzrdev/limmud" target="_blank" rel="noopener noreferrer">View source ↗</a></div>
+</nav>
+<main id="top">
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <div class="eyebrow">IN ACTIVE DEVELOPMENT · v0.1.0</div>
+    <h1 id="hero-title">Your courses. Your space.</h1>
+    <p class="lead">A local-first study workspace that brings offline videos, notes, progress, and useful tools together, without another browser tab or account.</p>
+    <div class="ctas"><a class="button button-primary" href="https://github.com/abnzrdev/limmud" target="_blank" rel="noopener noreferrer">Explore on GitHub <span aria-hidden="true">↗</span></a><a class="button button-secondary" href="#features">Explore features <span aria-hidden="true">↓</span></a></div>
+    <p class="hero-note">Open source · Local-first · No account required</p>
+  </div>
+  <div class="showcase">
+    <div class="preview" role="img" aria-label="Illustrative Limmud interface layout, not a screenshot of the running application"><div class="desktop-preview">
+    <div class="desktop-title"><span class="window-dot" aria-hidden="true"></span><span class="window-dot" aria-hidden="true"></span><span class="window-dot" aria-hidden="true"></span><span class="window-title">Limmud — your study space</span></div>
+    <div class="desktop-body"><aside class="coursebar"><div class="panel-overline">YOUR COURSES</div><div class="course-name"><span class="course-ico">▦</span> Programming</div><div class="course-item active">▶ 01 · Introduction</div><div class="course-item">◦ 02 · Variables</div><div class="course-item">◦ 03 · Functions</div><div class="course-item">◦ 04 · Practice</div><div class="course-divider"></div><div class="panel-overline">STUDY TOOLS</div><div class="course-item">⌁ Notes</div><div class="course-item">⌘ Terminal</div></aside>
+    <main class="workspace"><div class="video-surface"><div class="video-play">▶</div><div class="video-footer">00:24 / 12:40 <span>▰ ▰ ▱</span></div></div><div class="lesson-name">Introduction to Programming</div><div class="lesson-caption">Offline course · Lesson 01 of 04</div><div class="note-box"><div class="note-title">NOTES <span>Saved locally ✓</span></div><p># Key ideas</p><p>Organize lessons, keep context, and continue where you left off.</p></div></main></div>
+    <div class="desktop-status">●&nbsp; Offline workspace <span>Study progress stays on your device</span></div>
+  </div></div>
+    <div class="preview-label">Illustrative interface preview · not a product screenshot</div>
+  </div>
+</section>
+<section class="section" id="features">
+  <div class="section-head"><div><div class="eyebrow">WHY IT EXISTS</div><h2>Less friction. More focus.</h2></div><p class="section-subtitle">Designed around simple, offline-first workflows. These are the features in the project's published scope.</p></div>
+  <div class="features"><article class="feature"><div class="number">01</div><h3>Everything in one workspace</h3><p>Play a downloaded course while keeping notes, progress, and tools beside it.</p></article><article class="feature"><div class="number">02</div><h3>Continue learning offline</h3><p>Resume video playback, keep bookmarks, mark lessons complete, and track focus time.</p></article><article class="feature"><div class="number">03</div><h3>Your files stay yours</h3><p>Course videos, notes and learning state remain on your machine without a required account.</p></article><article class="feature"><div class="number">04</div><h3>Terminal when you need it</h3><p>Use an embedded multi-pane terminal during technical lessons without leaving the workspace.</p></article><article class="feature"><div class="number">05</div><h3>Keep learning context</h3><p>Markdown notes, todos, subtitles and an optional offline dictionary stay close to your lessons.</p></article><article class="feature"><div class="number">06</div><h3>Desktop and Android dev builds</h3><p>Tauri/Rust + React desktop architecture, with an Android development workflow in progress.</p></article></div>
+</section>
+<section class="section" id="how-it-works">
+  <div class="section-head"><div><div class="eyebrow">THE WORKFLOW</div><h2>Three steps, one clear experience.</h2></div></div>
+  <div class="steps"><article class="step"><h3>Choose a folder</h3><p>Point Limmud to your locally stored course lessons.</p></article><article class="step"><h3>Learn in one place</h3><p>Watch, write Markdown notes, use the terminal, and track progress.</p></article><article class="step"><h3>Come back without losing context</h3><p>Limmud saves lesson state beside your local course files.</p></article></div>
+</section>
+<section class="section" id="technical">
+  <div class="detail"><div><div class="eyebrow">UNDER THE HOOD</div><h3>Your courses stay on your computer.</h3><p>Limmud uses Tauri 2 and Rust for local filesystem access, with a React/TypeScript workspace for video, notes and tools. It has no required hosted backend, user account, or analytics collection.</p><p><strong>Development builds, not an app store release.</strong> Limmud v0.1.0 is early-stage. Its core desktop and Android development workflows are documented and testable, but signed installers are not yet published. Check the repository for setup steps and development status.</p></div><div><div class="eyebrow" style="margin-bottom:20px">TECHNOLOGIES</div><div class="stack"><span class="chip">Tauri 2</span><span class="chip">Rust</span><span class="chip">React 19</span><span class="chip">TypeScript</span><span class="chip">SQLite / FTS5</span><span class="chip">Vitest</span><span class="chip">Desktop + Android dev</span></div></div></div>
+</section>
+<section class="cta-band"><div><div class="eyebrow" style="color:#a9d3bf">OPEN SOURCE</div><h2>Curious how it's built?</h2><p>Browse the code, run a development build, or open an issue on GitHub.</p></div><a href="https://github.com/abnzrdev/limmud" class="button" target="_blank" rel="noopener noreferrer">Visit repository ↗</a></section>
+</main>
+<footer class="footer"><span>© 2026 Abenezer Alemayehu · Limmud is open source under the MIT License.</span><span><a href="https://github.com/abnzrdev/limmud">GitHub</a> &nbsp;·&nbsp; <a href="https://github.com/abnzrdev/barii">Also see Barii</a></span></footer>
+</div>
+</body>
+</html>
